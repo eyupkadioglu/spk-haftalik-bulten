@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Yeni Gelir / Gider{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('gelir_gider.index') }}">Gelir / Gider</a></li>
+<li class="breadcrumb-item active">Yeni</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3 fw-bold"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Yeni Gelir / Gider Kaydı</h4>
+<div class="card border-0 shadow-sm" style="max-width:600px">
+  <div class="card-body">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Tip *</label>
+          <select name="tip" class="form-select" required>
+            <option value="gelir">Gelir</option>
+            <option value="gider">Gider</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Kategori</label>
+          <select name="kategori_id" class="form-select">
+            <option value="">— Seçin —</option>
+            {% for k in kategoriler %}
+            <option value="{{ k.id }}">{{ k.ad }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Tarih *</label>
+          <input type="text" name="tarih" class="form-control datepicker" value="{{ now().strftime('%d.%m.%Y') }}" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Tutar (₺) *</label>
+          <input type="number" step="0.01" name="tutar" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">KDV Tutarı</label>
+          <input type="number" step="0.01" name="kdv_tutari" class="form-control" value="0">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Belge No</label>
+          <input type="text" name="belge_no" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Kasa / Banka</label>
+          <select name="kasa_id" class="form-select">
+            <option value="">— Bağlamayın —</option>
+            {% for k in kasalar %}
+            <option value="{{ k.id }}">{{ k.ad }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Açıklama</label>
+          <input type="text" name="aciklama" class="form-control">
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+        <a href="{{ url_for('gelir_gider.index') }}" class="btn btn-outline-secondary">İptal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

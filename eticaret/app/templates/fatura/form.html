@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% block title %}Yeni Fatura{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fatura.index', tip=tip) }}">Faturalar</a></li>
+<li class="breadcrumb-item active">Yeni</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+  {% if tip == 'satis' %}Yeni Satış Faturası{% else %}Yeni Alış Faturası{% endif %}
+</h4>
+
+<form method="POST" id="faturaForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="fatura_tipi" value="{{ tip }}">
+  <input type="hidden" name="kalemler_json" id="kalemlerJson" value="[]">
+  <input type="hidden" name="ara_toplam" id="hidAraToplam" value="0">
+  <input type="hidden" name="kdv_toplam" id="hidKdvToplam" value="0">
+  <input type="hidden" name="genel_toplam" id="hidGenelToplam" value="0">
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label">Cari *</label>
+          <select name="cari_id" class="form-select" required>
+            <option value="">— Seçin —</option>
+            {% for c in cariler %}
+            <option value="{{ c.id }}">{{ c.cari_kodu }} — {{ c.unvan }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Fatura Tarihi *</label>
+          <input type="text" name="fatura_tarihi" class="form-control datepicker" value="{{ now().strftime('%d.%m.%Y') }}" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Vade Tarihi</label>
+          <input type="text" name="vade_tarihi" class="form-control datepicker">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Ödeme Şekli</label>
+          <select name="odeme_sekli" class="form-select">
+            <option value="">— Seçin —</option>
+            <option>Nakit</option><option>Havale/EFT</option>
+            <option>Çek</option><option>Senet</option><option>Kredi Kartı</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Notlar</label>
+          <textarea name="notlar" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kalemler -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-semibold">Fatura Kalemleri</h6>
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="kalemEkle()">
+        <i class="bi bi-plus-lg me-1"></i>Satır Ekle
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table kalem-table mb-0" id="kalemTable">
+          <thead class="table-light">
+            <tr>
+              <th style="width:28%">Ürün / Açıklama</th>
+              <th style="width:7%">Birim</th>
+              <th style="width:8%">Miktar</th>
+              <th style="width:11%">Birim Fiyat</th>
+              <th style="width:7%">İsk%</th>
+              <th style="width:7%">KDV%</th>
+              <th style="width:11%" class="text-end">KDV Tutar</th>
+              <th style="width:11%" class="text-end">Toplam</th>
+              <th style="width:3%"></th>
+            </tr>
+          </thead>
+          <tbody id="kalemBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer bg-white">
+      <div class="row justify-content-end">
+        <div class="col-md-3">
+          <table class="table table-sm mb-0 small">
+            <tr><td class="text-muted">KDV Hariç:</td><td class="text-end fw-semibold" id="araToplam">0,00 ₺</td></tr>
+            <tr><td class="text-muted">KDV:</td><td class="text-end" id="kdvToplam">0,00 ₺</td></tr>
+            <tr class="table-active"><td class="fw-bold">Genel Toplam:</td><td class="text-end fw-bold fs-6" id="genelToplam">0,00 ₺</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Fatura Oluştur</button>
+    <a href="{{ url_for('fatura.index', tip=tip) }}" class="btn btn-outline-secondary">İptal</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let kalemSayaci = 0;
+
+function kalemEkle(stok = null) {
+  const idx = kalemSayaci++;
+  const tr = document.createElement('tr');
+  tr.id = `kalem-${idx}`;
+  tr.innerHTML = `
+    <td style="position:relative">
+      <input type="text" class="form-control form-control-sm kalem-aciklama" data-idx="${idx}"
+             placeholder="Ürün ara..." oninput="stokAra(this, ${idx})">
+      <div class="dropdown-list" id="ddl-${idx}" style="display:none; position:absolute; background:#fff; border:1px solid #dee2e6; border-radius:4px; z-index:1000; min-width:280px; max-height:200px; overflow-y:auto;"></div>
+      <input type="hidden" class="kalem-stok-id" data-idx="${idx}" value="">
+    </td>
+    <td><input type="text" class="form-control form-control-sm kalem-birim" data-idx="${idx}" value="Adet" style="width:60px"></td>
+    <td><input type="number" step="0.001" class="form-control form-control-sm kalem-miktar" data-idx="${idx}" value="1" oninput="hesaplaKalem(${idx})"></td>
+    <td><input type="number" step="0.0001" class="form-control form-control-sm kalem-fiyat" data-idx="${idx}" value="0" oninput="hesaplaKalem(${idx})"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm kalem-iskonto" data-idx="${idx}" value="0" oninput="hesaplaKalem(${idx})" style="width:55px"></td>
+    <td>
+      <select class="form-select form-select-sm kalem-kdv" data-idx="${idx}" onchange="hesaplaKalem(${idx})" style="width:65px">
+        <option value="0">%0</option><option value="1">%1</option>
+        <option value="10">%10</option><option value="20" selected>%20</option>
+      </select>
+    </td>
+    <td class="text-end"><span id="kalem-kdv-tutar-${idx}" class="text-muted small">0,00 ₺</span></td>
+    <td class="text-end"><span id="kalem-toplam-${idx}" class="fw-semibold">0,00 ₺</span></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="kalemSil(${idx})"><i class="bi bi-x"></i></button></td>
+  `;
+  document.getElementById('kalemBody').appendChild(tr);
+  if (stok) {
+    tr.querySelector('.kalem-aciklama').value = stok.ad;
+    tr.querySelector('.kalem-stok-id').value = stok.id;
+    tr.querySelector('.kalem-birim').value = stok.birim;
+    tr.querySelector('.kalem-fiyat').value = stok.satis_fiyati;
+    tr.querySelector('.kalem-kdv').value = stok.kdv_orani;
+    hesaplaKalem(idx);
+  }
+}
+
+function kalemSil(idx) {
+  const tr = document.getElementById(`kalem-${idx}`);
+  if (tr) tr.remove();
+  hesaplaToplam();
+}
+
+let araTimer = null;
+function stokAra(input, idx) {
+  clearTimeout(araTimer);
+  const q = input.value.trim();
+  if (q.length < 1) { document.getElementById(`ddl-${idx}`).style.display = 'none'; return; }
+  araTimer = setTimeout(async () => {
+    const results = await App.get(`/stok/api/search?q=${encodeURIComponent(q)}`);
+    const ddl = document.getElementById(`ddl-${idx}`);
+    if (!results.length) { ddl.style.display = 'none'; return; }
+    ddl.innerHTML = results.map(s =>
+      `<div class="px-2 py-1 small" style="cursor:pointer" onmousedown="stokSec(${idx}, ${JSON.stringify(s).replace(/"/g, '&quot;')})">
+        <strong>${s.stok_kodu}</strong> — ${s.ad} &nbsp;<span class="text-muted">${s.satis_fiyati.toFixed(2)} ₺</span>
+      </div>`
+    ).join('');
+    ddl.style.display = 'block';
+  }, 300);
+}
+
+function stokSec(idx, stok) {
+  document.querySelector(`.kalem-aciklama[data-idx="${idx}"]`).value = stok.ad;
+  document.querySelector(`.kalem-stok-id[data-idx="${idx}"]`).value = stok.id;
+  document.querySelector(`.kalem-birim[data-idx="${idx}"]`).value = stok.birim;
+  document.querySelector(`.kalem-fiyat[data-idx="${idx}"]`).value = stok.satis_fiyati;
+  document.querySelector(`.kalem-kdv[data-idx="${idx}"]`).value = stok.kdv_orani;
+  document.getElementById(`ddl-${idx}`).style.display = 'none';
+  hesaplaKalem(idx);
+}
+
+function hesaplaKalem(idx) {
+  const miktar = parseFloat(document.querySelector(`.kalem-miktar[data-idx="${idx}"]`).value) || 0;
+  const fiyat = parseFloat(document.querySelector(`.kalem-fiyat[data-idx="${idx}"]`).value) || 0;
+  const iskonto = parseFloat(document.querySelector(`.kalem-iskonto[data-idx="${idx}"]`).value) || 0;
+  const kdv = parseFloat(document.querySelector(`.kalem-kdv[data-idx="${idx}"]`).value) || 0;
+  const ara = miktar * fiyat * (1 - iskonto / 100);
+  const kdvT = ara * kdv / 100;
+  const toplam = ara + kdvT;
+  document.getElementById(`kalem-kdv-tutar-${idx}`).textContent = App.formatMoney(kdvT);
+  document.getElementById(`kalem-toplam-${idx}`).textContent = App.formatMoney(toplam);
+  hesaplaToplam();
+}
+
+function hesaplaToplam() {
+  let ara = 0, kdvT = 0;
+  document.querySelectorAll('#kalemBody tr').forEach(tr => {
+    const idx = tr.querySelector('.kalem-miktar')?.dataset.idx;
+    if (idx === undefined) return;
+    const m = parseFloat(document.querySelector(`.kalem-miktar[data-idx="${idx}"]`).value) || 0;
+    const f = parseFloat(document.querySelector(`.kalem-fiyat[data-idx="${idx}"]`).value) || 0;
+    const isk = parseFloat(document.querySelector(`.kalem-iskonto[data-idx="${idx}"]`).value) || 0;
+    const k = parseFloat(document.querySelector(`.kalem-kdv[data-idx="${idx}"]`).value) || 0;
+    const a = m * f * (1 - isk / 100);
+    ara += a;
+    kdvT += a * k / 100;
+  });
+  document.getElementById('araToplam').textContent = App.formatMoney(ara);
+  document.getElementById('kdvToplam').textContent = App.formatMoney(kdvT);
+  document.getElementById('genelToplam').textContent = App.formatMoney(ara + kdvT);
+  document.getElementById('hidAraToplam').value = ara.toFixed(2);
+  document.getElementById('hidKdvToplam').value = kdvT.toFixed(2);
+  document.getElementById('hidGenelToplam').value = (ara + kdvT).toFixed(2);
+}
+
+document.getElementById('faturaForm').addEventListener('submit', function() {
+  const rows = [];
+  document.querySelectorAll('#kalemBody tr').forEach(tr => {
+    const idx = tr.querySelector('.kalem-miktar')?.dataset.idx;
+    if (idx === undefined) return;
+    rows.push({
+      stok_id: document.querySelector(`.kalem-stok-id[data-idx="${idx}"]`).value || null,
+      aciklama: document.querySelector(`.kalem-aciklama[data-idx="${idx}"]`).value,
+      birim: document.querySelector(`.kalem-birim[data-idx="${idx}"]`).value,
+      miktar: document.querySelector(`.kalem-miktar[data-idx="${idx}"]`).value,
+      birim_fiyat: document.querySelector(`.kalem-fiyat[data-idx="${idx}"]`).value,
+      iskonto_orani: document.querySelector(`.kalem-iskonto[data-idx="${idx}"]`).value,
+      kdv_orani: document.querySelector(`.kalem-kdv[data-idx="${idx}"]`).value,
+    });
+  });
+  document.getElementById('kalemlerJson').value = JSON.stringify(rows);
+});
+
+kalemEkle();
+</script>
+{% endblock %}

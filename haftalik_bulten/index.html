@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haftalık Bülten</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="images/spk-logo.png" alt="SPK Logo" class="topbar-logo">
+      <div>
+        <h1>SPK Haftalık Bülten</h1>
+        <p>Organizasyon kontrollü onay ve arşiv prototipi</p>
+      </div>
+    </div>
+    <div class="user-switcher">
+      <label for="active-dept">Daire / Grup</label>
+      <select id="active-dept"></select>
+      <label for="active-user">Kullanıcı</label>
+      <select id="active-user"></select>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Ana sekmeler">
+    <button class="tab active" data-view="dashboard">Pano</button>
+    <button class="tab" data-view="organization">Organizasyon</button>
+    <button class="tab" data-view="bulletins">Bültenler</button>
+    <button class="tab" data-view="workspace">Çalışma</button>
+    <button class="tab" data-view="archive">Arşiv</button>
+    <button class="tab" data-view="logs">İşlem Kayıtları</button>
+  </nav>
+
+  <main id="app" class="app-shell"></main>
+
+  <template id="empty-state-template">
+    <div class="empty-state">
+      <h2></h2>
+      <p></p>
+    </div>
+  </template>
+
+  <script src="js/sample_pdf_bultenleri.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

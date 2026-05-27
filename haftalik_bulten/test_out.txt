@@ -1,0 +1,10 @@
+Total lines: 2334
+L200:   - Sayfa 2: `3.` Emeklilik Yatýrým Fonu Paylarý
+L201:   - Sayfa 2: `4.` Diðer Sermaye Piyasasý Araçlarý
+L202: - Sayfa 2: `B.` YENÝ FAALÝYET ÝZÝNLERÝ
+L203:   - Sayfa 2: `1.` Türkiye Hayat ve Emeklilik AÞ’nin Türkiye Hayat ve Emeklilik AÞ Tarým ve
+L204:   - Sayfa 2: `2.` Allianz Yaþam ve Emeklilik AÞ’nin Allianz Yaþam ve Emeklilik AÞ Azimut F
+L205:   - Sayfa 2: `3.` Tacirler Portföy Yönetimi AÞ Birinci Gayrimenkul Yatýrým Fonu’nun kurulu
+L206:   - Sayfa 2: `4.` Aþaðýda ünvanlarýna yer verilen gayrimenkul yatýrým fonlarýnýn kuruluþla
+L207:   - Sayfa 3: `5.` Fon Kuruluþu
+L208:   - Sayfa 3: `6.` Diðer faaliyet izinleri

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Gelir/Gider Kategorileri{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('gelir_gider.index') }}">Gelir/Gider</a></li>
+<li class="breadcrumb-item active">Kategoriler</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-tags me-2 text-primary"></i>Gelir/Gider Kategorileri</h4>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3">
+      <h6 class="fw-semibold mb-3">Yeni Kategori</h6>
+      <form method="POST" action="{{ url_for('gelir_gider.kategori_yeni') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-2">
+          <input type="text" name="ad" class="form-control form-control-sm" placeholder="Kategori adı" required>
+        </div>
+        <div class="mb-3">
+          <select name="tip" class="form-select form-select-sm">
+            <option value="gelir">Gelir</option>
+            <option value="gider">Gider</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100">Ekle</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+          <thead class="table-light">
+            <tr><th>Kategori Adı</th><th>Tip</th></tr>
+          </thead>
+          <tbody>
+            {% for k in kategoriler %}
+            <tr>
+              <td>{{ k.ad }}</td>
+              <td>
+                <span class="badge {{ 'bg-success' if k.tip == 'gelir' else 'bg-danger' }}">
+                  {{ 'Gelir' if k.tip == 'gelir' else 'Gider' }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2" class="text-center text-muted py-3">Kategori yok.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

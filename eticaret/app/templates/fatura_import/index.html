@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+{% block title %}Alış Faturası İçe Aktar{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fatura.index', tip='alis') }}">Alış Faturaları</a></li>
+<li class="breadcrumb-item active">İçe Aktar</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-cloud-upload me-2 text-primary"></i>
+    E-Fatura / E-Arşiv İçe Aktar
+  </h4>
+</div>
+
+<!-- Yükleme Kartı -->
+<div id="yukle-bolum">
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <p class="text-muted mb-3">
+        GIB e-Fatura <strong>(XML)</strong> veya e-Arşiv Fatura <strong>(PDF / HTML)</strong> dosyasını yükleyin.
+        Sistem fatura bilgilerini otomatik okuyacak, siz onayladıktan sonra kaydedilecektir.
+      </p>
+
+      <div id="drop-zone"
+           class="border border-2 border-dashed rounded-3 p-5 text-center"
+           style="border-color:#dee2e6; cursor:pointer; transition:border-color .2s"
+           ondragover="event.preventDefault(); this.style.borderColor='#0d6efd';"
+           ondragleave="this.style.borderColor='#dee2e6';"
+           ondrop="dropDosya(event)">
+        <i class="bi bi-file-earmark-arrow-up fs-1 text-secondary"></i>
+        <p class="mt-2 mb-1 fw-semibold">Dosyayı buraya sürükleyin veya seçin</p>
+        <p class="text-muted small">XML (e-Fatura) · PDF (e-Arşiv) · HTML (e-Fatura) — maks. 10 MB</p>
+        <label class="btn btn-outline-primary btn-sm mt-2">
+          <i class="bi bi-folder2-open me-1"></i>Dosya Seç
+          <input type="file" id="dosya-input" accept=".xml,.pdf,.html,.htm" class="d-none" onchange="dosyaSecildi(this)">
+        </label>
+      </div>
+
+      <div id="yukleniyor" class="text-center py-3 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Dosya okunuyor...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Önizleme Bölümü (başlangıçta gizli) -->
+<div id="onizleme-bolum" class="d-none">
+  <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    <div>Okunan bilgileri kontrol edin. Stok eşleştirmesi yapın, ardından <strong>Kaydet</strong>'e tıklayın.</div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Tedarikçi Bilgileri -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent fw-semibold py-2">
+          <i class="bi bi-building me-1 text-secondary"></i> Tedarikçi
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label form-label-sm mb-1">Unvan</label>
+            <input type="text" id="f-unvan" class="form-control form-control-sm">
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label form-label-sm mb-1">VKN</label>
+              <input type="text" id="f-vkn" class="form-control form-control-sm" maxlength="10">
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-sm mb-1">TCKN</label>
+              <input type="text" id="f-tckn" class="form-control form-control-sm" maxlength="11">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label form-label-sm mb-1">Adres</label>
+            <textarea id="f-adres" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fatura Bilgileri -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent fw-semibold py-2">
+          <i class="bi bi-receipt me-1 text-secondary"></i> Fatura
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-8">
+              <label class="form-label form-label-sm mb-1">Fatura No</label>
+              <input type="text" id="f-no" class="form-control form-control-sm">
+            </div>
+            <div class="col-4">
+              <label class="form-label form-label-sm mb-1">Tarih</label>
+              <input type="text" id="f-tarih" class="form-control form-control-sm" placeholder="GG.AA.YYYY">
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-4">
+              <label class="form-label form-label-sm mb-1">Matrah</label>
+              <input type="number" id="f-ara" class="form-control form-control-sm" step="0.01" readonly>
+            </div>
+            <div class="col-4">
+              <label class="form-label form-label-sm mb-1">KDV</label>
+              <input type="number" id="f-kdv" class="form-control form-control-sm" step="0.01" readonly>
+            </div>
+            <div class="col-4">
+              <label class="form-label form-label-sm mb-1">Genel Toplam</label>
+              <input type="number" id="f-toplam" class="form-control form-control-sm fw-bold" step="0.01" readonly>
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label form-label-sm mb-1">Notlar</label>
+            <input type="text" id="f-notlar" class="form-control form-control-sm">
+          </div>
+          <div class="mt-2">
+            <span id="kaynak-badge" class="badge bg-secondary"></span>
+            <span id="eslesme-ozet" class="ms-2 small text-muted"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kalemler -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-transparent fw-semibold py-2 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-ul me-1 text-secondary"></i> Fatura Kalemleri</span>
+      <button class="btn btn-outline-secondary btn-sm" onclick="kalemEkle()">
+        <i class="bi bi-plus"></i> Satır Ekle
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" id="kalem-tablo">
+        <thead class="table-light">
+          <tr>
+            <th style="width:25%">Açıklama</th>
+            <th style="width:18%">Stok Eşleştir</th>
+            <th style="width:7%">Miktar</th>
+            <th style="width:7%">Birim</th>
+            <th style="width:10%">Birim Fiyat</th>
+            <th style="width:6%">KDV%</th>
+            <th style="width:6%">İsk%</th>
+            <th style="width:10%">Toplam</th>
+            <th style="width:4%"></th>
+          </tr>
+        </thead>
+        <tbody id="kalem-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" onclick="kaydet()">
+      <i class="bi bi-check-lg me-1"></i>Fatura Olarak Kaydet
+    </button>
+    <button class="btn btn-outline-secondary" onclick="sifirla()">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Yeniden Yükle
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.stok-dropdown { top: 100%; left: 0; }
+.stok-dropdown .list-group-item { font-size: .8rem; padding: .3rem .6rem; cursor: pointer; }
+.stok-dropdown .list-group-item:hover { background: #e9f3ff; }
+.kalem-stok-wrap { position: relative; min-width: 160px; }
+</style>
+<script>
+let _sonuc = null;
+let _stokTimer = null;
+
+/* ---------- dosya yükleme ---------- */
+
+function dropDosya(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = '#dee2e6';
+  const f = e.dataTransfer.files[0];
+  if (f) isle(f);
+}
+
+function dosyaSecildi(input) {
+  if (input.files[0]) isle(input.files[0]);
+}
+
+function isle(dosya) {
+  const ext = dosya.name.split('.').pop().toLowerCase();
+  if (!['pdf', 'xml', 'html', 'htm'].includes(ext)) {
+    alert('Sadece PDF, XML veya HTML dosyası yükleyebilirsiniz.');
+    return;
+  }
+  document.getElementById('yukleniyor').classList.remove('d-none');
+  document.getElementById('drop-zone').classList.add('d-none');
+
+  const fd = new FormData();
+  fd.append('dosya', dosya);
+
+  fetch('{{ url_for("fatura_import.isle") }}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+    body: fd,
+  })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('yukleniyor').classList.add('d-none');
+      if (data.hata) {
+        alert('Hata: ' + data.hata);
+        document.getElementById('drop-zone').classList.remove('d-none');
+        return;
+      }
+      _sonuc = data;
+      doldur(data);
+    })
+    .catch(err => {
+      document.getElementById('yukleniyor').classList.add('d-none');
+      document.getElementById('drop-zone').classList.remove('d-none');
+      alert('Dosya işlenirken hata oluştu: ' + err);
+    });
+}
+
+/* ---------- önizleme doldurma ---------- */
+
+function doldur(d) {
+  document.getElementById('f-unvan').value  = d.tedarikci_adi  || '';
+  document.getElementById('f-vkn').value    = d.tedarikci_vkn  || '';
+  document.getElementById('f-tckn').value   = d.tedarikci_tckn || '';
+  document.getElementById('f-adres').value  = d.tedarikci_adres|| '';
+  document.getElementById('f-no').value     = d.fatura_no      || '';
+  document.getElementById('f-tarih').value  = d.fatura_tarihi  || '';
+  document.getElementById('f-notlar').value = d.notlar         || '';
+  document.getElementById('f-ara').value    = d.ara_toplam     || 0;
+  document.getElementById('f-kdv').value    = d.kdv_toplam     || 0;
+  document.getElementById('f-toplam').value = d.genel_toplam   || 0;
+  document.getElementById('kaynak-badge').textContent = 'Kaynak: ' + (d.kaynak || '');
+  document.getElementById('kaynak-badge').className =
+    'badge ' + (d.kaynak === 'XML' ? 'bg-success' : d.kaynak === 'HTML' ? 'bg-info text-dark' : 'bg-warning text-dark');
+
+  const tbody = document.getElementById('kalem-tbody');
+  tbody.innerHTML = '';
+  (d.kalemler || []).forEach(k => kalemSatirEkle(k));
+
+  document.getElementById('yukle-bolum').classList.add('d-none');
+  document.getElementById('onizleme-bolum').classList.remove('d-none');
+  eslesmeOzetGuncelle();
+}
+
+/* ---------- kalem satırı ---------- */
+
+function kalemSatirEkle(k) {
+  k = k || {};
+  const tbody = document.getElementById('kalem-tbody');
+  const tr = document.createElement('tr');
+  const miktar  = parseFloat(k.miktar)        || 1;
+  const fiyat   = parseFloat(k.birim_fiyat)   || 0;
+  const kdv     = parseFloat(k.kdv_orani)     ?? 20;
+  const isk     = parseFloat(k.iskonto_orani) || 0;
+  const net     = miktar * fiyat * (1 - isk / 100);
+  const toplam  = (net * (1 + kdv / 100)).toFixed(2);
+
+  tr.innerHTML = `
+    <td><input class="form-control form-control-sm kalem-aciklama" value="${esc(k.aciklama||'')}"></td>
+    <td class="kalem-stok-wrap">
+      <input type="hidden" class="kalem-stok-id" value="">
+      <input type="text" class="form-control form-control-sm kalem-stok-ara" placeholder="Stok ara..." autocomplete="off">
+      <div class="stok-dropdown list-group position-absolute" style="z-index:9999;display:none;max-height:200px;overflow-y:auto;width:280px"></div>
+      <div class="kalem-stok-bilgi d-none mt-1"></div>
+    </td>
+    <td><input type="number" class="form-control form-control-sm kalem-miktar" value="${miktar}" min="0.001" step="any"></td>
+    <td><input class="form-control form-control-sm kalem-birim" value="${esc(k.birim||'Adet')}"></td>
+    <td><input type="number" class="form-control form-control-sm kalem-fiyat" value="${fiyat}" min="0" step="any"></td>
+    <td><input type="number" class="form-control form-control-sm kalem-kdv" value="${kdv}" min="0" step="1"></td>
+    <td><input type="number" class="form-control form-control-sm kalem-isk" value="${isk}" min="0" step="0.01"></td>
+    <td><input type="number" class="form-control form-control-sm kalem-toplam" value="${toplam}" readonly></td>
+    <td><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="this.closest('tr').remove(); toplamGuncelle(); eslesmeOzetGuncelle()">×</button></td>`;
+  tbody.appendChild(tr);
+
+  // Hesaplama event'leri
+  tr.querySelectorAll('.kalem-miktar,.kalem-fiyat,.kalem-kdv,.kalem-isk').forEach(inp =>
+    inp.addEventListener('change', () => { hesapla(tr); })
+  );
+}
+
+function kalemEkle() { kalemSatirEkle({}); }
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+/* ---------- hesaplama ---------- */
+
+function hesapla(tr) {
+  const miktar = parseFloat(tr.querySelector('.kalem-miktar').value) || 0;
+  const fiyat  = parseFloat(tr.querySelector('.kalem-fiyat').value)  || 0;
+  const kdv    = parseFloat(tr.querySelector('.kalem-kdv').value)    || 0;
+  const isk    = parseFloat(tr.querySelector('.kalem-isk').value)    || 0;
+  const net    = miktar * fiyat * (1 - isk / 100);
+  tr.querySelector('.kalem-toplam').value = (net * (1 + kdv / 100)).toFixed(2);
+  toplamGuncelle();
+}
+
+function toplamGuncelle() {
+  let ara = 0, kdvT = 0;
+  document.querySelectorAll('#kalem-tbody tr').forEach(tr => {
+    const miktar = parseFloat(tr.querySelector('.kalem-miktar').value) || 0;
+    const fiyat  = parseFloat(tr.querySelector('.kalem-fiyat').value)  || 0;
+    const kdv    = parseFloat(tr.querySelector('.kalem-kdv').value)    || 0;
+    const isk    = parseFloat(tr.querySelector('.kalem-isk').value)    || 0;
+    const net    = miktar * fiyat * (1 - isk / 100);
+    ara  += net;
+    kdvT += net * kdv / 100;
+  });
+  document.getElementById('f-ara').value    = ara.toFixed(2);
+  document.getElementById('f-kdv').value    = kdvT.toFixed(2);
+  document.getElementById('f-toplam').value = (ara + kdvT).toFixed(2);
+}
+
+/* ---------- stok eşleştirme ---------- */
+
+function eslesmeOzetGuncelle() {
+  const satirlar = document.querySelectorAll('#kalem-tbody tr');
+  const eslesen  = [...satirlar].filter(tr => tr.querySelector('.kalem-stok-id').value).length;
+  const el = document.getElementById('eslesme-ozet');
+  if (satirlar.length === 0) { el.textContent = ''; return; }
+  el.textContent = `${eslesen}/${satirlar.length} kalem stokla eşleşti`;
+  el.className = eslesen === satirlar.length ? 'ms-2 small text-success' : 'ms-2 small text-warning';
+}
+
+function stokSec(tr, s) {
+  tr.querySelector('.kalem-stok-id').value = s.id;
+  tr.querySelector('.kalem-stok-ara').value = s.stok_kodu ? `[${s.stok_kodu}] ${s.ad}` : s.ad;
+  // KDV oranını stok kartından al
+  tr.querySelector('.kalem-kdv').value = s.kdv_orani;
+  hesapla(tr);
+
+  // Bilgi rozeti
+  const bilgi = tr.querySelector('.kalem-stok-bilgi');
+  bilgi.innerHTML =
+    `<span class="badge bg-light text-dark border" title="Mevcut stok miktarı">
+       <i class="bi bi-box-seam"></i> ${s.stok_miktari.toFixed(2)}
+     </span>
+     <span class="badge bg-light text-dark border ms-1" title="Son alış fiyatı">
+       <i class="bi bi-tag"></i> ${s.alis_fiyati.toFixed(2)} ₺
+     </span>`;
+  bilgi.classList.remove('d-none');
+
+  kapatDropdown(tr);
+  eslesmeOzetGuncelle();
+}
+
+function stokTemizle(tr) {
+  tr.querySelector('.kalem-stok-id').value = '';
+  tr.querySelector('.kalem-stok-ara').value = '';
+  const bilgi = tr.querySelector('.kalem-stok-bilgi');
+  bilgi.innerHTML = '';
+  bilgi.classList.add('d-none');
+  kapatDropdown(tr);
+  eslesmeOzetGuncelle();
+}
+
+function kapatDropdown(tr) {
+  tr.querySelector('.stok-dropdown').style.display = 'none';
+}
+
+// Stok arama — event delegation
+document.addEventListener('DOMContentLoaded', () => {
+  const tbody = document.getElementById('kalem-tbody');
+
+  tbody.addEventListener('input', e => {
+    const ara = e.target;
+    if (!ara.classList.contains('kalem-stok-ara')) return;
+    const tr = ara.closest('tr');
+    const dropdown = tr.querySelector('.stok-dropdown');
+
+    // Seçim temizle
+    tr.querySelector('.kalem-stok-id').value = '';
+    tr.querySelector('.kalem-stok-bilgi').classList.add('d-none');
+    eslesmeOzetGuncelle();
+
+    const q = ara.value.trim();
+    if (q.length < 2) { dropdown.style.display = 'none'; return; }
+
+    clearTimeout(_stokTimer);
+    _stokTimer = setTimeout(() => {
+      fetch(`{{ url_for("fatura_import.stok_ara") }}?q=${encodeURIComponent(q)}`, {
+        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+      })
+      .then(r => r.json())
+      .then(liste => {
+        dropdown.innerHTML = '';
+        if (!liste.length) {
+          dropdown.innerHTML = '<div class="list-group-item text-muted">Sonuç yok</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+        liste.forEach(s => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'list-group-item list-group-item-action';
+          item.innerHTML =
+            `<div class="fw-semibold">${esc(s.ad)}</div>
+             <div class="text-muted" style="font-size:.75rem">${esc(s.stok_kodu||'')} · Stok: ${s.stok_miktari.toFixed(2)} · Son alış: ${s.alis_fiyati.toFixed(2)} ₺</div>`;
+          item.addEventListener('mousedown', ev => { ev.preventDefault(); stokSec(tr, s); });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+      });
+    }, 300);
+  });
+
+  tbody.addEventListener('blur', e => {
+    if (!e.target.classList.contains('kalem-stok-ara')) return;
+    setTimeout(() => kapatDropdown(e.target.closest('tr')), 200);
+  }, true);
+});
+
+/* ---------- kaydet ---------- */
+
+function kaydet() {
+  const kalemler = [];
+  let gecersiz = false;
+
+  document.querySelectorAll('#kalem-tbody tr').forEach(tr => {
+    const aciklama = tr.querySelector('.kalem-aciklama').value.trim();
+    if (!aciklama) { gecersiz = true; return; }
+    const stokIdVal = tr.querySelector('.kalem-stok-id').value;
+    kalemler.push({
+      aciklama,
+      stok_id:       stokIdVal ? parseInt(stokIdVal) : null,
+      miktar:        parseFloat(tr.querySelector('.kalem-miktar').value) || 1,
+      birim:         tr.querySelector('.kalem-birim').value.trim() || 'Adet',
+      birim_fiyat:   parseFloat(tr.querySelector('.kalem-fiyat').value) || 0,
+      kdv_orani:     parseFloat(tr.querySelector('.kalem-kdv').value) || 20,
+      iskonto_orani: parseFloat(tr.querySelector('.kalem-isk').value) || 0,
+    });
+  });
+
+  if (gecersiz) { alert('Tüm kalemlerin açıklama alanını doldurun.'); return; }
+  if (!kalemler.length) { alert('En az bir kalem gereklidir.'); return; }
+
+  const payload = {
+    fatura_no:       document.getElementById('f-no').value.trim(),
+    fatura_tarihi:   document.getElementById('f-tarih').value.trim(),
+    tedarikci_adi:   document.getElementById('f-unvan').value.trim(),
+    tedarikci_vkn:   document.getElementById('f-vkn').value.trim(),
+    tedarikci_tckn:  document.getElementById('f-tckn').value.trim(),
+    tedarikci_adres: document.getElementById('f-adres').value.trim(),
+    notlar:          document.getElementById('f-notlar').value.trim(),
+    kalemler,
+  };
+
+  fetch('{{ url_for("fatura_import.kaydet") }}', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+    body:    JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.hata) { alert('Hata: ' + data.hata); return; }
+    window.location.href = data.redirect;
+  })
+  .catch(err => alert('Kayıt sırasında hata oluştu: ' + err));
+}
+
+/* ---------- sıfırla ---------- */
+
+function sifirla() {
+  _sonuc = null;
+  document.getElementById('onizleme-bolum').classList.add('d-none');
+  document.getElementById('yukle-bolum').classList.remove('d-none');
+  document.getElementById('drop-zone').classList.remove('d-none');
+  document.getElementById('dosya-input').value = '';
+}
+</script>
+{% endblock %}

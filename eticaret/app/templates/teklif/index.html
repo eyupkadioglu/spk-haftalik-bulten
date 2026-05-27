@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Teklifler{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Teklifler</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Teklifler</h4>
+  <a href="{{ url_for('teklif.yeni') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Yeni Teklif
+  </a>
+</div>
+
+<!-- Filtre -->
+<form method="GET" class="row g-2 mb-3">
+  <div class="col-md-5">
+    <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Teklif no ara…">
+  </div>
+  <div class="col-md-3">
+    <select name="durum" class="form-select form-select-sm">
+      <option value="">Tüm Durumlar</option>
+      <option value="taslak" {{ 'selected' if durum=='taslak' }}>Taslak</option>
+      <option value="gonderildi" {{ 'selected' if durum=='gonderildi' }}>Gönderildi</option>
+      <option value="iptal" {{ 'selected' if durum=='iptal' }}>İptal</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-secondary btn-sm" type="submit"><i class="bi bi-search"></i></button>
+    <a href="{{ url_for('teklif.index') }}" class="btn btn-outline-secondary btn-sm">Temizle</a>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Teklif No</th>
+          <th>Cari</th>
+          <th>Tarih</th>
+          <th>Geçerlilik</th>
+          <th class="text-end">Toplam</th>
+          <th>Durum</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in teklifler %}
+        {% set cls,lbl = durum_labels.get(t.durum, ('secondary','?')) %}
+        <tr>
+          <td><a href="{{ url_for('teklif.detail', id=t.id) }}" class="fw-semibold text-decoration-none">{{ t.teklif_no }}</a></td>
+          <td>{{ t.cari.unvan }}</td>
+          <td>{{ t.teklif_tarihi|format_tarih }}</td>
+          <td class="{{ 'text-danger' if t.gecerlilik_tarihi and t.gecerlilik_tarihi < today and t.durum not in ('kabul','red','iptal') else '' }}">
+            {{ t.gecerlilik_tarihi|format_tarih if t.gecerlilik_tarihi else '—' }}
+          </td>
+          <td class="text-end fw-semibold">{{ t.genel_toplam|format_para }}</td>
+          <td><span class="badge bg-{{ cls }}">{{ lbl }}</span></td>
+          <td class="text-end">
+            <a href="{{ url_for('teklif.detail', id=t.id) }}" class="btn btn-sm btn-outline-secondary py-0">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Teklif bulunamadı.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

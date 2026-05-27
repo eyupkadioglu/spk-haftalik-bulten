@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% block title %}{% if stok %}Stok Düzenle{% else %}Yeni Ürün / Hizmet{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('stok.index') }}">Stok</a></li>
+<li class="breadcrumb-item active">{% if stok %}Düzenle{% else %}Yeni{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-box-seam me-2 text-primary"></i>
+    {% if stok %}{{ stok.ad }}{% else %}Yeni Ürün / Hizmet{% endif %}
+  </h4>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="row g-3">
+
+    <!-- Sol kolon -->
+    <div class="col-lg-8">
+
+      <!-- Temel Bilgiler -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-semibold small">Temel Bilgiler</div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <!-- Ürün Tipi -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Ürün Tipi</label>
+              <div class="d-flex gap-3">
+                {% for val, lbl, ikon in [('stok','Stok Ürünü','bi-box-seam'),('hizmet','Hizmet','bi-tools')] %}
+                <div class="form-check form-check-inline border rounded px-3 py-2 flex-fill text-center"
+                     style="cursor:pointer" onclick="document.getElementById('tip_{{ val }}').click()">
+                  <input class="form-check-input" type="radio" name="urun_tipi"
+                         value="{{ val }}" id="tip_{{ val }}"
+                         {{ 'checked' if (stok.urun_tipi if stok else 'stok') == val }}
+                         onchange="toggleStokAlani()">
+                  <label class="form-check-label" for="tip_{{ val }}">
+                    <i class="bi {{ ikon }} me-1"></i>{{ lbl }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label small">Stok Kodu</label>
+              <input type="text" name="stok_kodu" class="form-control form-control-sm"
+                     value="{{ stok.stok_kodu if stok else '' }}" placeholder="Boş = otomatik">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Barkod</label>
+              <input type="text" name="barkod" class="form-control form-control-sm"
+                     value="{{ stok.barkod or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small">Ürün / Hizmet Adı <span class="text-danger">*</span></label>
+              <input type="text" name="ad" class="form-control form-control-sm"
+                     value="{{ stok.ad if stok else '' }}" required>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label small">Marka</label>
+              <input type="text" name="marka" class="form-control form-control-sm"
+                     value="{{ stok.marka or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Kategori</label>
+              <select name="kategori_id" class="form-select form-select-sm">
+                <option value="">— Seçin —</option>
+                {% for k in kategoriler %}
+                <option value="{{ k.id }}" {{ 'selected' if stok and stok.kategori_id == k.id }}>{{ k.ad }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Birim</label>
+              <select name="birim" class="form-select form-select-sm">
+                {% for b in ['Adet', 'Kg', 'Lt', 'm²', 'm', 'Kutu', 'Paket', 'Takım', 'Saat', 'Gün'] %}
+                <option {{ 'selected' if stok and stok.birim == b }}>{{ b }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Açıklama</label>
+              <input type="text" name="aciklama" class="form-control form-control-sm"
+                     value="{{ stok.aciklama or '' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tedarikçi Bilgileri -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-semibold small">Tedarikçi</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small">Tedarikçi</label>
+              <select name="tedarikci_id" class="form-select form-select-sm">
+                <option value="">— Seçin —</option>
+                {% for t in tedarikciler %}
+                <option value="{{ t.id }}" {{ 'selected' if stok and stok.tedarikci_id == t.id }}>{{ t.unvan }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small">Tedarikçi Ürün Kodu</label>
+              <input type="text" name="tedarikci_kodu" class="form-control form-control-sm"
+                     value="{{ stok.tedarikci_kodu or '' }}"
+                     placeholder="Tedarikçinin ürüne verdiği kod">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fiyat & KDV -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-semibold small">Fiyat ve KDV</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label small">Alış Para Birimi</label>
+              <select name="alis_para_birimi" class="form-select form-select-sm">
+                {% for pb in ['TRY','USD','EUR'] %}
+                <option {{ 'selected' if (stok.alis_para_birimi if stok else 'TRY') == pb }}>{{ pb }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Alış Fiyatı</label>
+              <input type="number" step="0.0001" name="alis_fiyati" class="form-control form-control-sm"
+                     value="{{ stok.alis_fiyati if stok else '0' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Alış KDV Oranı (%)</label>
+              <select name="alis_kdv_orani" class="form-select form-select-sm">
+                {% for kdv in [0, 1, 10, 20] %}
+                <option value="{{ kdv }}"
+                  {{ 'selected' if stok and (stok.alis_kdv_orani or stok.kdv_orani) == kdv
+                     else ('selected' if not stok and kdv == 20 else '') }}>%{{ kdv }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3"></div>
+
+            <div class="col-md-3">
+              <label class="form-label small">Satış Para Birimi</label>
+              <select name="satis_para_birimi" class="form-select form-select-sm">
+                {% for pb in ['TRY','USD','EUR'] %}
+                <option {{ 'selected' if (stok.satis_para_birimi if stok else 'TRY') == pb }}>{{ pb }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Satış Fiyatı</label>
+              <input type="number" step="0.0001" name="satis_fiyati" class="form-control form-control-sm"
+                     value="{{ stok.satis_fiyati if stok else '0' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Satış KDV Oranı (%)</label>
+              <select name="satis_kdv_orani" class="form-select form-select-sm">
+                {% for kdv in [0, 1, 10, 20] %}
+                <option value="{{ kdv }}"
+                  {{ 'selected' if stok and stok.kdv_orani == kdv
+                     else ('selected' if not stok and kdv == 20 else '') }}>%{{ kdv }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stok Takibi (sadece 'stok' tipinde) -->
+      <div class="card border-0 shadow-sm mb-3" id="stokTakipKarti">
+        <div class="card-header bg-white border-bottom fw-semibold small">Stok Takibi</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label small">Min. Stok</label>
+              <input type="number" step="0.001" name="min_stok" class="form-control form-control-sm"
+                     value="{{ stok.min_stok if stok else '0' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Max. Stok</label>
+              <input type="number" step="0.001" name="max_stok" class="form-control form-control-sm"
+                     value="{{ stok.max_stok if stok else '0' }}">
+            </div>
+            {% if not stok %}
+            <div class="col-md-3">
+              <label class="form-label small">Açılış Miktarı</label>
+              <input type="number" step="0.001" name="acilis_miktar" class="form-control form-control-sm" value="0">
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sağ kolon: Resim -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-semibold small">Ürün Resmi</div>
+        <div class="card-body text-center">
+          {% if stok and stok.resim %}
+          <img src="{{ url_for('static', filename=stok.resim) }}"
+               alt="{{ stok.ad }}" class="img-thumbnail mb-2"
+               style="max-height:150px;max-width:100%;object-fit:contain;">
+          <div class="form-check d-flex justify-content-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" name="resim_sil" value="1" id="resimSil">
+            <label class="form-check-label text-danger small" for="resimSil">Resmi sil</label>
+          </div>
+          {% endif %}
+          <input type="file" name="resim" class="form-control form-control-sm mb-2" accept="image/*" id="resimInput">
+          <div class="input-group input-group-sm mb-1">
+            <input type="text" id="resimUrl" class="form-control" placeholder="veya resim URL'si yapıştırın…">
+            <button type="button" class="btn btn-outline-secondary" onclick="urldenCek()">
+              <i class="bi bi-download"></i>
+            </button>
+          </div>
+          <input type="hidden" name="resim_url" id="resimUrlHidden">
+          <div class="form-text">JPG, PNG, WebP — max 5 MB. Dosya veya URL ile resim ekleyin.</div>
+          <div id="resimOnizleme" class="mt-2" style="display:none">
+            <img id="onizlemeImg" src="#" class="img-thumbnail"
+                 style="max-height:150px;max-width:100%;object-fit:contain;">
+            <div class="form-text text-success small mt-1" id="resimOnizlemeBilgi"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-flex gap-2 mt-1">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+    <a href="{{ url_for('stok.index') }}" class="btn btn-outline-secondary btn-sm">İptal</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStokAlani() {
+  const tip = document.querySelector('input[name="urun_tipi"]:checked')?.value;
+  document.getElementById('stokTakipKarti').style.display = (tip === 'hizmet') ? 'none' : '';
+}
+toggleStokAlani();
+
+document.getElementById('resimInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) { document.getElementById('resimOnizleme').style.display = 'none'; return; }
+  document.getElementById('resimUrlHidden').value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('onizlemeImg').src = e.target.result;
+    document.getElementById('resimOnizlemeBilgi').textContent = 'Dosya seçildi: ' + file.name;
+    document.getElementById('resimOnizleme').style.display = '';
+  };
+  reader.readAsDataURL(file);
+});
+
+function urldenCek() {
+  const url = document.getElementById('resimUrl').value.trim();
+  if (!url) return;
+  const img = document.getElementById('onizlemeImg');
+  img.onload = function() {
+    document.getElementById('resimUrlHidden').value = url;
+    document.getElementById('resimOnizlemeBilgi').textContent = 'URL\'den yüklenecek';
+    document.getElementById('resimOnizleme').style.display = '';
+    // Dosya inputunu temizle — URL öncelikli
+    document.getElementById('resimInput').value = '';
+  };
+  img.onerror = function() {
+    document.getElementById('resimOnizleme').style.display = 'none';
+    alert('Resim yüklenemedi. URL geçerli bir görsel adresi olmalı.');
+    document.getElementById('resimUrlHidden').value = '';
+  };
+  img.src = url;
+}
+
+// Enter tuşu ile URL çek
+document.getElementById('resimUrl').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); urldenCek(); }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Sipariş Listesi{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Siparişler</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-cart-check me-2 text-primary"></i>
+    {% if tip == 'satis' %}Satış Siparişleri{% else %}Alış Siparişleri{% endif %}
+  </h4>
+  <a href="{{ url_for('siparis.yeni', tip=tip) }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Yeni Sipariş
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <input type="hidden" name="tip" value="{{ tip }}">
+      <div class="col-md-4">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Sipariş no veya cari ara..." value="{{ q }}">
+      </div>
+      <div class="col-auto">
+        <select name="durum" class="form-select form-select-sm">
+          <option value="">Tüm Durumlar</option>
+          {% for k, v in DURUM_LABELS.items() %}
+          <option value="{{ k }}" {{ 'selected' if durum == k }}>{{ v[0] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
+        <a href="{{ url_for('siparis.index', tip=tip) }}" class="btn btn-outline-secondary btn-sm">Temizle</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Sipariş No</th><th>Cari</th><th>Tarih</th><th>Teslim</th><th class="text-end">Toplam</th><th>Durum</th><th></th></tr></thead>
+      <tbody>
+        {% for s in siparisler %}
+        <tr>
+          <td><a href="{{ url_for('siparis.detail', id=s.id) }}" class="text-decoration-none fw-semibold text-primary">{{ s.siparis_no }}</a></td>
+          <td>{{ s.cari.unvan }}</td>
+          <td>{{ s.siparis_tarihi | format_tarih }}</td>
+          <td>{{ s.teslim_tarihi | format_tarih if s.teslim_tarihi else '—' }}</td>
+          <td class="text-end fw-semibold">{{ s.genel_toplam | format_para }}</td>
+          <td>
+            {% set lbl = DURUM_LABELS.get(s.durum, (s.durum, 'secondary')) %}
+            <span class="badge bg-{{ lbl[1] }}">{{ lbl[0] }}</span>
+          </td>
+          <td>
+            <a href="{{ url_for('siparis.detail', id=s.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-2">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Sipariş yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

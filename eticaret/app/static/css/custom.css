@@ -1,0 +1,151 @@
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .7s linear infinite; display:inline-block; }
+
+/* ===== Layout ===== */
+body { font-size: 0.875rem; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background-color: #1e2a3a;
+  color: #ccd6e0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar-brand {
+  background-color: #162030;
+  border-bottom: 1px solid #2d3f52;
+}
+
+.sidebar-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #5a7a96;
+  padding: 0.6rem 0.75rem 0.2rem;
+  text-transform: uppercase;
+}
+
+.sidebar .nav-link {
+  color: #adc0d0;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.825rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #2d3f52;
+  color: #fff;
+}
+
+.sidebar .nav-link.active {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+.sidebar-user { background-color: #162030; }
+
+.avatar-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #0d6efd;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ===== Topbar ===== */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  min-height: 52px;
+}
+
+/* ===== Main content ===== */
+.main-content { background-color: #f4f6f9; }
+
+/* ===== Cards ===== */
+.kpi-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.kpi-card .kpi-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+
+/* ===== Tables ===== */
+.table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table tbody tr:hover { background-color: #f0f4ff; }
+
+/* ===== Badges ===== */
+.badge-taslak { background-color: #6c757d; }
+.badge-onaylandi { background-color: #198754; }
+.badge-kismi_odendi { background-color: #fd7e14; }
+.badge-odendi { background-color: #0dcaf0; color: #000; }
+.badge-iptal { background-color: #dc3545; }
+.badge-acik { background-color: #0d6efd; }
+.badge-tamamlandi { background-color: #198754; }
+
+/* ===== Forms ===== */
+.form-control, .form-select {
+  font-size: 0.875rem;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+/* ===== Fatura kalem tablosu ===== */
+.kalem-table th, .kalem-table td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+}
+
+.kalem-table input { font-size: 0.85rem; }
+
+/* ===== Print ===== */
+@media print {
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .main-content { margin: 0; }
+}
+
+/* ===== Mobile sidebar ===== */
+@media (max-width: 991px) {
+  .sidebar {
+    position: fixed; left: -240px; z-index: 1050;
+    transition: left 0.3s;
+  }
+  .sidebar.show { left: 0; }
+}
+
+/* ===== Scrollbar ===== */
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: #2d3f52; border-radius: 2px; }

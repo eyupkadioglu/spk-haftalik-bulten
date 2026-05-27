@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}{{ urun.urun_kodu }} — psSEO{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'urun:liste' %}">Ürünler</a></li>
+      <li class="breadcrumb-item active">{{ urun.urun_kodu }}</li>
+    </ol>
+  </nav>
+  <div class="d-flex gap-2">
+    <a href="{% url 'urun:duzenle' urun.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Düzenle</a>
+    <a href="{% url 'seo:ps_export' %}?urun={{ urun.pk }}" class="btn btn-outline-success btn-sm"><i class="bi bi-filetype-csv me-1"></i>PrestaShop CSV</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold py-2">
+        <i class="bi bi-box-seam me-1 text-secondary"></i>Ürün Bilgileri
+      </div>
+      <div class="card-body small">
+        <table class="table table-sm mb-0">
+          <tr><th style="width:40%">Ürün Kodu</th><td><code>{{ urun.urun_kodu }}</code></td></tr>
+          <tr><th>Marka</th><td>{{ urun.marka|default:"—" }}</td></tr>
+          <tr><th>Ürün Adı</th><td>{{ urun.ad }}</td></tr>
+          <tr><th>Kategori</th><td>{{ urun.kategori.ad|default:"—" }}</td></tr>
+          <tr><th>Barkod</th><td>{{ urun.barkod|default:"—" }}</td></tr>
+          <tr><th>Fiyat</th><td>{{ urun.fiyat|default:"—" }}</td></tr>
+          {% if urun.kaynak_url %}
+          <tr><th>Kaynak URL</th><td><a href="{{ urun.kaynak_url }}" target="_blank" class="small">{{ urun.kaynak_url|truncatechars:50 }}</a></td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold py-2">
+        <i class="bi bi-lightning me-1 text-secondary"></i>SEO İçerik Üret
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{% url 'seo:toplu' urun.pk %}">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label form-label-sm fw-semibold">Üretilecek İçerikler</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for tip, etiket in tipler %}
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="tipler" value="{{ tip }}" id="tip_{{ tip }}" checked>
+                <label class="form-check-label small" for="tip_{{ tip }}">{{ etiket }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="row g-2 align-items-end">
+            <div class="col-auto">
+              <select name="kaynak" class="form-select form-select-sm">
+                <option value="ai">Claude AI</option>
+                <option value="chatgpt">ChatGPT</option>
+                <option value="sablon">Şablon (AI olmadan)</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-primary btn-sm"><i class="bi bi-lightning me-1"></i>Tümünü Üret</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEO İçerik Kartları -->
+{% for tip, veri in tip_icerik.items %}
+{% with onaylandi=veri.onaylandi son=veri.son gecmis=veri.gecmis %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      {% if tip == 'urun_adi' %}<i class="bi bi-pencil-square me-1 text-danger"></i>Ürün Adı Önerisi
+      {% elif tip == 'ozet' %}<i class="bi bi-card-text me-1 text-info"></i>Özet (Short Description)
+      {% elif tip == 'detay' %}<i class="bi bi-file-text me-1 text-primary"></i>Detay Açıklama (Description)
+      {% elif tip == 'meta_baslik' %}<i class="bi bi-tag me-1 text-warning"></i>Meta Başlık
+      {% elif tip == 'meta_aciklama' %}<i class="bi bi-chat-quote me-1 text-secondary"></i>Meta Açıklama
+      {% elif tip == 'anahtar_kelime' %}<i class="bi bi-key me-1 text-success"></i>Anahtar Kelimeler
+      {% endif %}
+    </span>
+    <div class="d-flex gap-2 align-items-center">
+      {% if onaylandi %}<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Onaylı</span>{% endif %}
+      <!-- Tek tip üret -->
+      <form method="POST" action="{% url 'seo:uret' urun.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="tip" value="{{ tip }}">
+        <select name="kaynak" class="form-select form-select-sm d-inline" style="width:auto">
+          <option value="ai">Claude AI</option>
+          <option value="chatgpt">ChatGPT</option>
+          <option value="sablon">Şablon</option>
+        </select>
+        <button class="btn btn-outline-primary btn-sm py-0"><i class="bi bi-arrow-clockwise"></i> Yenile</button>
+      </form>
+    </div>
+  </div>
+
+  {% if onaylandi %}
+  <div class="card-body">
+    {% if tip == 'urun_adi' %}
+    <div class="urun-adi-oneri" data-icerik="{{ onaylandi.icerik }}">{{ onaylandi.icerik|safe }}</div>
+    <p class="text-muted small mt-1"><i class="bi bi-hand-index me-1"></i>Bir öneriyi tıklayarak kopyalayın.</p>
+    {% else %}
+    <div class="seo-preview">{{ onaylandi.icerik|safe }}</div>
+    {% endif %}
+    <div class="mt-2 d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="kopyala('{{ onaylandi.pk }}')"><i class="bi bi-clipboard me-1"></i>HTML Kopyala</button>
+      <form method="POST" action="{% url 'seo:reddet' onaylandi.pk %}">{% csrf_token %}
+        <button class="btn btn-sm btn-outline-danger py-0">Onayı Kaldır</button>
+      </form>
+    </div>
+    <pre id="html-{{ onaylandi.pk }}" class="d-none">{{ onaylandi.icerik }}</pre>
+  </div>
+  {% elif son %}
+  <div class="card-body">
+    <div class="alert alert-warning py-2 small mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Üretildi ama henüz onaylanmadı.</div>
+    {% if tip == 'urun_adi' %}
+    <div class="urun-adi-oneri">{{ son.icerik|safe }}</div>
+    <p class="text-muted small mt-1"><i class="bi bi-hand-index me-1"></i>Bir öneriyi tıklayarak kopyalayın.</p>
+    {% else %}
+    <div class="seo-preview">{{ son.icerik|safe }}</div>
+    {% endif %}
+    <div class="mt-2 d-flex gap-2">
+      <form method="POST" action="{% url 'seo:onayla' son.pk %}">{% csrf_token %}
+        <button class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i>Onayla</button>
+      </form>
+      <button class="btn btn-sm btn-outline-secondary" onclick="kopyala('{{ son.pk }}')"><i class="bi bi-clipboard me-1"></i>HTML Kopyala</button>
+    </div>
+    <pre id="html-{{ son.pk }}" class="d-none">{{ son.icerik }}</pre>
+  </div>
+  {% else %}
+  <div class="card-body text-muted small"><i class="bi bi-dash-circle me-1"></i>Henüz içerik üretilmedi.</div>
+  {% endif %}
+
+  {% if gecmis|length > 1 %}
+  <div class="card-footer bg-white py-1">
+    <button class="btn btn-link btn-sm py-0 text-muted" data-bs-toggle="collapse" data-bs-target="#gecmis-{{ tip }}">
+      <i class="bi bi-clock-history me-1"></i>Geçmiş ({{ gecmis|length }})
+    </button>
+    <div id="gecmis-{{ tip }}" class="collapse mt-2">
+      {% for ic in gecmis %}
+      <div class="border rounded p-2 mb-2 small {% if ic.onaylandi %}border-success{% endif %}">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">{{ ic.created_at|date:"d.m.Y H:i" }} — {{ ic.kaynak }}{% if ic.model_adi %} ({{ ic.model_adi }}){% endif %}</span>
+          {% if not ic.onaylandi %}
+          <form method="POST" action="{% url 'seo:onayla' ic.pk %}" class="d-inline">{% csrf_token %}
+            <button class="btn btn-xs btn-outline-success py-0 px-1" style="font-size:.7rem">Onayla</button>
+          </form>
+          {% endif %}
+        </div>
+        {% if tip == 'urun_adi' %}
+        <div class="urun-adi-oneri">{{ ic.icerik|safe }}</div>
+        {% else %}
+        <div class="seo-preview">{{ ic.icerik|safe }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endwith %}
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function kopyala(pk) {
+  const el = document.getElementById('html-' + pk);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    alert('HTML panoya kopyalandı.');
+  });
+}
+
+// Ürün adı önerileri: li tıklayınca sadece metin kopyala
+document.addEventListener('click', function(e) {
+  const li = e.target.closest('.urun-adi-oneri li');
+  if (!li) return;
+  const metin = li.textContent.trim();
+  navigator.clipboard.writeText(metin).then(() => {
+    const orig = li.style.background;
+    li.style.background = '#d1fae5';
+    li.title = 'Kopyalandı!';
+    setTimeout(() => { li.style.background = orig; }, 1200);
+  });
+});
+
+// Ürün adı li'lerine hover cursor ekle
+document.querySelectorAll('.urun-adi-oneri li').forEach(li => {
+  li.style.cursor = 'pointer';
+  li.title = 'Kopyalamak için tıkla';
+});
+</script>
+<style>
+.urun-adi-oneri li:hover { background: #f0f9ff; border-radius: 4px; }
+.urun-adi-oneri li { padding: 4px 6px; transition: background .15s; }
+</style>
+{% endblock %}

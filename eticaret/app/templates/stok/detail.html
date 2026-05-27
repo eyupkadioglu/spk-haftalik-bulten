@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% block title %}{{ stok.ad }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('stok.index') }}">Stok</a></li>
+<li class="breadcrumb-item active">{{ stok.ad }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0 fw-bold">
+      <i class="bi {{ 'bi-tools' if stok.urun_tipi == 'hizmet' else 'bi-box-seam' }} me-2 text-primary"></i>
+      {{ stok.ad }}
+      <span class="badge bg-{{ 'info' if stok.urun_tipi == 'hizmet' else 'secondary' }} ms-1 fs-6">
+        {{ 'Hizmet' if stok.urun_tipi == 'hizmet' else 'Stok' }}
+      </span>
+    </h4>
+    <span class="text-muted small">{{ stok.stok_kodu }}{% if stok.marka %} &bull; {{ stok.marka }}{% endif %}</span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('stok.duzenle', id=stok.id) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Düzenle
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#silModal">
+      <i class="bi bi-trash me-1"></i>Sil
+    </button>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+
+    <!-- Resim -->
+    {% if stok.resim %}
+    <div class="card border-0 shadow-sm mb-3 text-center p-3">
+      <img src="{{ url_for('static', filename=stok.resim) }}" alt="{{ stok.ad }}"
+           class="img-fluid rounded" style="max-height:200px;object-fit:contain;">
+    </div>
+    {% endif %}
+
+    <!-- Temel Bilgiler -->
+    <div class="card border-0 shadow-sm p-3 mb-3">
+      <h6 class="fw-semibold border-bottom pb-2 mb-3">Bilgiler</h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Stok Kodu</dt>
+        <dd class="col-7">{{ stok.stok_kodu }}</dd>
+
+        {% if stok.barkod %}
+        <dt class="col-5 text-muted">Barkod</dt>
+        <dd class="col-7">{{ stok.barkod }}</dd>
+        {% endif %}
+
+        {% if stok.marka %}
+        <dt class="col-5 text-muted">Marka</dt>
+        <dd class="col-7">{{ stok.marka }}</dd>
+        {% endif %}
+
+        <dt class="col-5 text-muted">Kategori</dt>
+        <dd class="col-7">{{ stok.kategori.ad if stok.kategori else '—' }}</dd>
+
+        <dt class="col-5 text-muted">Birim</dt>
+        <dd class="col-7">{{ stok.birim }}</dd>
+
+        {% if stok.tedarikci %}
+        <dt class="col-5 text-muted">Tedarikçi</dt>
+        <dd class="col-7">
+          <a href="{{ url_for('cari.detail', id=stok.tedarikci.id) }}" class="text-decoration-none">
+            {{ stok.tedarikci.unvan }}
+          </a>
+        </dd>
+        {% endif %}
+
+        {% if stok.tedarikci_kodu %}
+        <dt class="col-5 text-muted">Ted. Kodu</dt>
+        <dd class="col-7">{{ stok.tedarikci_kodu }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Fiyat & KDV -->
+    <div class="card border-0 shadow-sm p-3 mb-3">
+      <h6 class="fw-semibold border-bottom pb-2 mb-3">Fiyat & KDV</h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Alış Fiyatı</dt>
+        <dd class="col-7">{{ stok.alis_fiyati | format_para(stok.alis_para_birimi) }}</dd>
+
+        <dt class="col-5 text-muted">Alış KDV</dt>
+        <dd class="col-7">%{{ stok.alis_kdv_orani or stok.kdv_orani }}</dd>
+
+        <dt class="col-5 text-muted">Satış Fiyatı</dt>
+        <dd class="col-7 fw-semibold text-primary">{{ stok.satis_fiyati | format_para(stok.satis_para_birimi) }}</dd>
+
+        <dt class="col-5 text-muted">Satış KDV</dt>
+        <dd class="col-7">%{{ stok.kdv_orani }}</dd>
+      </dl>
+    </div>
+
+    {% if stok.urun_tipi != 'hizmet' %}
+    <!-- Stok Durumu -->
+    <div class="card border-0 shadow-sm p-3 mb-3">
+      <h6 class="fw-semibold border-bottom pb-2 mb-3">Stok Durumu</h6>
+      <div class="p-3 rounded {% if stok.dusuk_stok %}bg-danger{% else %}bg-success{% endif %} bg-opacity-10 text-center mb-2">
+        <div class="text-muted small">Mevcut</div>
+        <div class="fw-bold fs-4 {% if stok.dusuk_stok %}text-danger{% else %}text-success{% endif %}">
+          {{ stok.stok_miktari | format_miktar }} {{ stok.birim }}
+        </div>
+        {% if stok.dusuk_stok %}<span class="badge bg-danger">Düşük Stok!</span>{% endif %}
+      </div>
+      <div class="d-flex justify-content-between small text-muted">
+        <span>Min: {{ stok.min_stok | format_miktar }} {{ stok.birim }}</span>
+        <span>Max: {{ stok.max_stok | format_miktar }} {{ stok.birim }}</span>
+      </div>
+    </div>
+
+    <!-- Manuel Hareket -->
+    <div class="card border-0 shadow-sm p-3">
+      <h6 class="fw-semibold mb-3">Manuel Hareket Ekle</h6>
+      <form method="POST" action="{{ url_for('stok.hareket_ekle', id=stok.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-2">
+          <select name="hareket_tipi" class="form-select form-select-sm">
+            <option value="giris">Giriş</option>
+            <option value="cikis">Çıkış</option>
+            <option value="sayim">Sayım Düzeltme</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <input type="number" step="0.001" name="miktar" class="form-control form-control-sm"
+                 placeholder="Miktar" required>
+        </div>
+        <div class="mb-2">
+          <input type="number" step="0.01" name="birim_fiyat" class="form-control form-control-sm"
+                 placeholder="Birim Fiyat (₺)">
+        </div>
+        <div class="mb-2">
+          <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="Açıklama">
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary w-100">Ekle</button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Sağ kolon: Geçmiş sekmeler -->
+  <div class="col-md-8">
+    <ul class="nav nav-tabs" id="stokTabs" role="tablist">
+      {% if stok.urun_tipi != 'hizmet' %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-hareketler" type="button">
+          <i class="bi bi-arrow-left-right me-1"></i>Hareketler
+          {% if hareketler %}<span class="badge bg-secondary ms-1">{{ hareketler|length }}</span>{% endif %}
+        </button>
+      </li>
+      {% endif %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {{ 'active' if stok.urun_tipi == 'hizmet' }}" data-bs-toggle="tab" data-bs-target="#tab-satis-fatura" type="button">
+          <i class="bi bi-receipt me-1"></i>Satış Fat.
+          {% if satis_fatura_kalemleri %}<span class="badge bg-secondary ms-1">{{ satis_fatura_kalemleri|length }}</span>{% endif %}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-alis-fatura" type="button">
+          <i class="bi bi-receipt me-1"></i>Alış Fat.
+          {% if alis_fatura_kalemleri %}<span class="badge bg-secondary ms-1">{{ alis_fatura_kalemleri|length }}</span>{% endif %}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-siparisler" type="button">
+          <i class="bi bi-bag me-1"></i>Siparişler
+          {% if siparis_kalemleri %}<span class="badge bg-secondary ms-1">{{ siparis_kalemleri|length }}</span>{% endif %}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-teklifler" type="button">
+          <i class="bi bi-file-earmark-text me-1"></i>Teklifler
+          {% if teklif_kalemleri %}<span class="badge bg-secondary ms-1">{{ teklif_kalemleri|length }}</span>{% endif %}
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content card border-0 shadow-sm border-top-0" style="border-radius:0 0 .375rem .375rem">
+
+      <!-- Hareketler -->
+      {% if stok.urun_tipi != 'hizmet' %}
+      <div class="tab-pane fade show active" id="tab-hareketler" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead><tr>
+              <th>Tarih</th><th>Tip</th>
+              <th class="text-end">Miktar</th>
+              <th class="text-end">Birim Fiyat</th>
+              <th>Açıklama</th>
+            </tr></thead>
+            <tbody>
+              {% for h in hareketler %}
+              <tr>
+                <td>{{ h.tarih | format_tarih }}</td>
+                <td>
+                  {% set giris_tipler = ('giris','iade_giris','devir','virman_giris','parcalama_giris','birlestirme_giris') %}
+                  <span class="badge bg-{{ 'success' if h.hareket_tipi in giris_tipler else 'danger' if 'cikis' in h.hareket_tipi else 'secondary' }}">
+                    {{ h.hareket_tipi | replace('_', ' ') }}
+                  </span>
+                </td>
+                <td class="text-end fw-semibold">{{ h.miktar | format_miktar }} {{ stok.birim }}</td>
+                <td class="text-end">{{ h.birim_fiyat | format_para }}</td>
+                <td class="text-muted">{{ h.aciklama or '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Hareket yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Satış Faturaları -->
+      <div class="tab-pane fade {{ 'show active' if stok.urun_tipi == 'hizmet' }}" id="tab-satis-fatura" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead><tr>
+              <th>Tarih</th><th>Fatura No</th><th>Cari</th>
+              <th class="text-end">Miktar</th>
+              <th class="text-end">Birim Fiyat</th>
+              <th class="text-end">Toplam</th>
+              <th>Durum</th>
+            </tr></thead>
+            <tbody>
+              {% for k in satis_fatura_kalemleri %}
+              <tr>
+                <td>{{ k.fatura.fatura_tarihi | format_tarih }}</td>
+                <td><a href="{{ url_for('fatura.detail', id=k.fatura.id) }}" class="text-decoration-none">{{ k.fatura.fatura_no }}</a></td>
+                <td>
+                  {% if k.fatura.cari %}
+                  <a href="{{ url_for('cari.detail', id=k.fatura.cari.id) }}" class="text-decoration-none">{{ k.fatura.cari.unvan }}</a>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="text-end">{{ k.miktar | format_miktar }} {{ k.birim }}</td>
+                <td class="text-end">{{ k.birim_fiyat | format_para }}</td>
+                <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para }}</td>
+                <td><span class="badge bg-secondary">{{ k.fatura.durum }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-muted py-3">Satış faturası yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Alış Faturaları -->
+      <div class="tab-pane fade" id="tab-alis-fatura" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead><tr>
+              <th>Tarih</th><th>Fatura No</th><th>Cari</th>
+              <th class="text-end">Miktar</th>
+              <th class="text-end">Birim Fiyat</th>
+              <th class="text-end">Toplam</th>
+              <th>Durum</th>
+            </tr></thead>
+            <tbody>
+              {% for k in alis_fatura_kalemleri %}
+              <tr>
+                <td>{{ k.fatura.fatura_tarihi | format_tarih }}</td>
+                <td><a href="{{ url_for('fatura.detail', id=k.fatura.id) }}" class="text-decoration-none">{{ k.fatura.fatura_no }}</a></td>
+                <td>
+                  {% if k.fatura.cari %}
+                  <a href="{{ url_for('cari.detail', id=k.fatura.cari.id) }}" class="text-decoration-none">{{ k.fatura.cari.unvan }}</a>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="text-end">{{ k.miktar | format_miktar }} {{ k.birim }}</td>
+                <td class="text-end">{{ k.birim_fiyat | format_para }}</td>
+                <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para }}</td>
+                <td><span class="badge bg-secondary">{{ k.fatura.durum }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-muted py-3">Alış faturası yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Siparişler -->
+      <div class="tab-pane fade" id="tab-siparisler" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead><tr>
+              <th>Tarih</th><th>Sipariş No</th><th>Tip</th><th>Cari</th>
+              <th class="text-end">Miktar</th>
+              <th class="text-end">Birim Fiyat</th>
+              <th class="text-end">Toplam</th>
+              <th>Durum</th>
+            </tr></thead>
+            <tbody>
+              {% for k in siparis_kalemleri %}
+              <tr>
+                <td>{{ k.siparis.siparis_tarihi | format_tarih }}</td>
+                <td>
+                  <a href="{{ url_for('siparis.detail', id=k.siparis.id) }}" class="text-decoration-none">
+                    {{ k.siparis.siparis_no }}
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-{{ 'primary' if k.siparis.siparis_tipi == 'satis' else 'warning text-dark' }}">
+                    {{ 'Satış' if k.siparis.siparis_tipi == 'satis' else 'Alış' }}
+                  </span>
+                </td>
+                <td>
+                  {% if k.siparis.cari %}
+                  <a href="{{ url_for('cari.detail', id=k.siparis.cari.id) }}" class="text-decoration-none">{{ k.siparis.cari.unvan }}</a>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="text-end">{{ k.miktar | format_miktar }} {{ k.birim }}</td>
+                <td class="text-end">{{ k.birim_fiyat | format_para }}</td>
+                <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para }}</td>
+                <td><span class="badge bg-secondary">{{ k.siparis.durum }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="text-center text-muted py-3">Sipariş kaydı yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Teklifler -->
+      <div class="tab-pane fade" id="tab-teklifler" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead><tr>
+              <th>Tarih</th><th>Teklif No</th><th>Cari</th>
+              <th class="text-end">Miktar</th>
+              <th class="text-end">Birim Fiyat</th>
+              <th class="text-end">Toplam</th>
+              <th>Durum</th>
+            </tr></thead>
+            <tbody>
+              {% for k in teklif_kalemleri %}
+              <tr>
+                <td>{{ k.teklif.teklif_tarihi | format_tarih }}</td>
+                <td>
+                  <a href="{{ url_for('teklif.detail', id=k.teklif.id) }}" class="text-decoration-none">
+                    {{ k.teklif.teklif_no }}
+                  </a>
+                </td>
+                <td>
+                  {% if k.teklif.cari %}
+                  <a href="{{ url_for('cari.detail', id=k.teklif.cari.id) }}" class="text-decoration-none">{{ k.teklif.cari.unvan }}</a>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="text-end">{{ k.miktar | format_miktar }} {{ k.birim }}</td>
+                <td class="text-end">{{ k.birim_fiyat | format_para(k.teklif.para_birimi) }}</td>
+                <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para(k.teklif.para_birimi) }}</td>
+                <td>
+                  <span class="badge bg-{{ 'success' if k.teklif.durum == 'siparise_donustu'
+                                            else 'danger' if k.teklif.durum == 'iptal'
+                                            else 'info' if k.teklif.durum == 'gonderildi'
+                                            else 'secondary' }}">
+                    {{ k.teklif.durum }}
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-muted py-3">Teklif kaydı yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div><!-- /col-md-8 -->
+</div>
+
+<!-- Silme Onay Modal -->
+<div class="modal fade" id="silModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-semibold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Ürünü Sil</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body small">
+        <strong>{{ stok.ad }}</strong> ürününü silmek istediğinize emin misiniz?
+        Bu işlem geri alınamaz.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Vazgeç</button>
+        <form method="POST" action="{{ url_for('stok.sil', id=stok.id) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm">Evet, Sil</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

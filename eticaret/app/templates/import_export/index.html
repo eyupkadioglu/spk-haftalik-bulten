@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}İçe/Dışa Aktar{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">İçe Aktar</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-cloud-upload me-2 text-primary"></i>Veri İçe Aktarma</h4>
+</div>
+
+<div class="alert alert-info d-flex gap-2 align-items-start">
+  <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+  <div>
+    <strong>Bizim Hesap veya başka sistemlerden aktarım:</strong> İlgili şablonu indirip verilerinizi kopyalayın, ardından dosyayı yükleyin.
+    Excel (.xlsx) ve CSV (.csv) formatları desteklenir.
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- CARİ IMPORT -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2 text-primary"></i>Cari Aktarımı</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Müşteri ve tedarikçi bilgilerini toplu aktarın.</p>
+        <a href="{{ url_for('import_export.sablon_indir', tip='cari') }}" class="btn btn-outline-secondary btn-sm mb-3 w-100">
+          <i class="bi bi-download me-1"></i>Şablon İndir (Excel)
+        </a>
+        <form method="POST" action="{{ url_for('import_export.import_cari') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <input type="file" name="dosya" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="guncelle" value="1" id="cariGuncelle">
+            <label class="form-check-label small" for="cariGuncelle">Mevcut kayıtları güncelle</label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Aktarmaya Başla
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOK IMPORT -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-box-seam me-2 text-success"></i>Stok Aktarımı</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Ürün/stok bilgilerini toplu aktarın.</p>
+        <a href="{{ url_for('import_export.sablon_indir', tip='stok') }}" class="btn btn-outline-secondary btn-sm mb-3 w-100">
+          <i class="bi bi-download me-1"></i>Şablon İndir (Excel)
+        </a>
+        <form method="POST" action="{{ url_for('import_export.import_stok') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <input type="file" name="dosya" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">
+              Varsayılan Para Birimi
+              <span class="text-muted fw-normal">(dosyada kolon yoksa uygulanır)</span>
+            </label>
+            <div class="d-flex gap-2">
+              {% for pb, lbl in [('TRY','₺ TRY'),('USD','$ USD'),('EUR','€ EUR')] %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="varsayilan_pb"
+                       value="{{ pb }}" id="stokPb{{ pb }}" {{ 'checked' if pb == 'TRY' }}>
+                <label class="form-check-label small" for="stokPb{{ pb }}">{{ lbl }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="guncelle" value="1" id="stokGuncelle">
+            <label class="form-check-label small" for="stokGuncelle">Mevcut kayıtları güncelle</label>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="acilis_hareket" value="1" id="acilisHareket" checked>
+            <label class="form-check-label small" for="acilisHareket">Mevcut stok → açılış hareketi oluştur</label>
+          </div>
+          <button type="submit" class="btn btn-success btn-sm w-100">
+            <i class="bi bi-upload me-1"></i>Aktarmaya Başla
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESİM BULK IMPORT -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-images me-2 text-danger"></i>Toplu Resim Aktarımı</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Excel'de <strong>Stok Kodu</strong> ve <strong>Resim URL</strong> sütunlarını doldurun —
+          resimler otomatik indirilip ürünlere atanır.
+        </p>
+        <a href="{{ url_for('import_export.sablon_indir', tip='resim') }}" class="btn btn-outline-secondary btn-sm mb-3 w-100">
+          <i class="bi bi-download me-1"></i>Şablon İndir (Excel)
+        </a>
+        <form method="POST" action="{{ url_for('import_export.import_resim') }}" enctype="multipart/form-data"
+              id="resimImportForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <input type="file" name="dosya" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+          </div>
+          <button type="submit" class="btn btn-danger btn-sm w-100" id="resimImportBtn">
+            <i class="bi bi-upload me-1"></i>Aktarmaya Başla
+          </button>
+        </form>
+        <div id="resimImportProgress" class="mt-2" style="display:none">
+          <div class="progress" style="height:6px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width:100%"></div>
+          </div>
+          <div class="text-muted small mt-1 text-center">Resimler indiriliyor, lütfen bekleyin…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KASA IMPORT -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-cash-coin me-2 text-warning"></i>Kasa Hareketi Aktarımı</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Kasa ve banka hareketlerini toplu aktarın.</p>
+        <a href="{{ url_for('import_export.sablon_indir', tip='kasa') }}" class="btn btn-outline-secondary btn-sm mb-3 w-100">
+          <i class="bi bi-download me-1"></i>Şablon İndir (Excel)
+        </a>
+        <form method="POST" action="{{ url_for('import_export.import_kasa') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <input type="file" name="dosya" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Hangi kasa hesabına?</label>
+            <select name="kasa_id" class="form-select form-select-sm" required>
+              <option value="">— Seçin —</option>
+              {% for k in kasa_hesaplari %}
+              <option value="{{ k.id }}">{{ k.ad }} ({{ k.hesap_tipi }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-warning btn-sm w-100 text-dark">
+            <i class="bi bi-upload me-1"></i>Aktarmaya Başla
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bizim Hesap yönergesi -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-semibold"><i class="bi bi-question-circle me-2 text-info"></i>Bizim Hesap'tan Nasıl Aktarılır?</h6>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;flex-shrink:0">1</span>
+          <div>
+            <strong class="d-block small">Listeye gidin</strong>
+            <span class="text-muted small">Cariler, Stoklar veya Kasa listesi sayfasını açın.</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;flex-shrink:0">2</span>
+          <div>
+            <strong class="d-block small">Excel'e Aktar</strong>
+            <span class="text-muted small">"Excel'e Aktar" veya "Dışa Aktar" butonuna tıklayın.</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;flex-shrink:0">3</span>
+          <div>
+            <strong class="d-block small">Buraya Yükleyin</strong>
+            <span class="text-muted small">İndirilen .xlsx dosyasını yukarıdaki formlara yükleyin.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-warning mt-3 mb-0 small">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      Bizim Hesap sütun başlıkları otomatik eşlenir. Eşlenemeyen sütunlar atlanır.
+      Sorun yaşarsanız önce şablonu indirip sütunları o formata göre düzenleyin.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('resimImportForm').addEventListener('submit', function() {
+  document.getElementById('resimImportBtn').disabled = true;
+  document.getElementById('resimImportProgress').style.display = '';
+});
+</script>
+{% endblock %}

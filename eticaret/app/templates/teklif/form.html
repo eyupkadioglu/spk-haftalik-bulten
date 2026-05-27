@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Teklif Düzenle' if teklif else 'Yeni Teklif' }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('teklif.index') }}">Teklifler</a></li>
+<li class="breadcrumb-item active">{{ 'Düzenle' if teklif else 'Yeni' }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+    {{ 'Teklif Düzenle — ' + teklif.teklif_no if teklif else 'Yeni Teklif' }}
+  </h4>
+</div>
+
+<form method="POST" id="teklifForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="kalemler_json" id="kalemlerJson">
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label small fw-semibold">Cari <span class="text-danger">*</span></label>
+      <select name="cari_id" class="form-select form-select-sm" required>
+        <option value="">— Seçin —</option>
+        {% for c in cariler %}
+        <option value="{{ c.id }}" {{ 'selected' if teklif and teklif.cari_id == c.id }}>{{ c.unvan }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold">Teklif Tarihi</label>
+      <input type="text" name="teklif_tarihi" class="form-control form-control-sm datepicker"
+             value="{{ teklif.teklif_tarihi|format_tarih if teklif else bugun }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold">Geçerlilik Tarihi</label>
+      <input type="text" name="gecerlilik_tarihi" class="form-control form-control-sm datepicker"
+             value="{{ teklif.gecerlilik_tarihi|format_tarih if teklif and teklif.gecerlilik_tarihi else gecerli }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold">Para Birimi</label>
+      {% set varsayilan_pb = teklif.para_birimi if teklif else (firma_ayar.varsayilan_para_birimi if firma_ayar else 'TRY') %}
+      <select name="para_birimi" id="paraBirimi" class="form-select form-select-sm">
+        <option value="TRY" {{ 'selected' if varsayilan_pb == 'TRY' }}>₺ TRY</option>
+        <option value="USD" {{ 'selected' if varsayilan_pb == 'USD' }}>$ USD</option>
+        <option value="EUR" {{ 'selected' if varsayilan_pb == 'EUR' }}>€ EUR</option>
+      </select>
+    </div>
+    <div class="col-md-2" id="kurBilgiCol" style="display:none">
+      <label class="form-label small fw-semibold">Kur (TL Satış)</label>
+      <div class="form-control form-control-sm bg-light text-muted" id="kurGosterge">—</div>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold">Notlar</label>
+      <input type="text" name="notlar" class="form-control form-control-sm"
+             value="{{ teklif.notlar or '' }}">
+    </div>
+  </div>
+
+  <!-- Stok arama -->
+  <div class="mb-2 position-relative">
+    <div class="input-group input-group-sm" style="max-width:400px">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" id="stokAra" class="form-control" placeholder="Ürün ara ve ekle…" autocomplete="off">
+    </div>
+    <div id="stokSonuc" class="dropdown-menu shadow" style="display:none;max-height:220px;overflow-y:auto;min-width:380px"></div>
+  </div>
+
+  <!-- Kalemler tablosu -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 small kalem-table" id="kalemTable">
+        <thead class="table-light">
+          <tr>
+            <th style="width:30%">Ürün / Açıklama</th>
+            <th style="width:8%" class="text-end">Miktar</th>
+            <th style="width:8%">Birim</th>
+            <th style="width:11%" class="text-end">Birim Fiyat</th>
+            <th style="width:7%" class="text-end">İsk %</th>
+            <th style="width:7%" class="text-end">KDV %</th>
+            <th style="width:10%" class="text-end">KDV</th>
+            <th style="width:12%" class="text-end">Toplam</th>
+            <th style="width:5%"></th>
+          </tr>
+        </thead>
+        <tbody id="kalemBody">
+          <tr id="bos-satir"><td colspan="9" class="text-center text-muted py-3">Yukarıdan ürün arayın veya boş satır ekleyin.</td></tr>
+        </tbody>
+        <tfoot class="table-light fw-semibold">
+          <tr>
+            <td colspan="6" class="text-end">Ara Toplam</td>
+            <td colspan="2" class="text-end" id="araToplam">₺0,00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="6" class="text-end">KDV</td>
+            <td colspan="2" class="text-end" id="kdvToplam">₺0,00</td>
+            <td></td>
+          </tr>
+          <tr class="fs-6">
+            <td colspan="6" class="text-end">Genel Toplam</td>
+            <td colspan="2" class="text-end text-primary fw-bold" id="genelToplam">₺0,00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="bosSatirEkle()">
+      <i class="bi bi-plus-lg me-1"></i>Boş Satır Ekle
+    </button>
+    <button type="submit" class="btn btn-primary btn-sm ms-auto">
+      <i class="bi bi-save me-1"></i>Kaydet
+    </button>
+    <a href="{{ url_for('teklif.index') }}" class="btn btn-outline-secondary btn-sm">İptal</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const KALEMLER_INIT = {{ kalemler_json | default('[]') | safe }};
+let kalemler = [];
+let _kurlar = {};
+let _oncekiPB = document.getElementById('paraBirimi').value;
+
+// Para birimi sembolü
+const PB_SEMBOL = {TRY:'₺', USD:'$', EUR:'€'};
+function sembol(){ return PB_SEMBOL[document.getElementById('paraBirimi').value] || '₺'; }
+
+// Sayı formatlama — her zaman para birimi olmadan, sembol ayrıca gösterilir
+function fmt(v){
+  return sembol() + ' ' + new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v||0);
+}
+
+// TRY → hedef para birimine çevir
+function tryDonustur(tryTutar, hedefPB){
+  if(hedefPB === 'TRY') return tryTutar;
+  const kur = _kurlar[hedefPB]?.satis;
+  if(!kur || kur <= 0) return tryTutar; // kur yoksa değiştirme
+  return tryTutar / kur;
+}
+
+// hedef → TRY
+function tryeCevir(tutar, kaynakPB){
+  if(kaynakPB === 'TRY') return tutar;
+  const kur = _kurlar[kaynakPB]?.satis;
+  if(!kur || kur <= 0) return tutar;
+  return tutar * kur;
+}
+
+function hesapla(k){
+  const net = parseFloat(k.miktar||1) * parseFloat(k.birim_fiyat||0) * (1 - parseFloat(k.iskonto_orani||0)/100);
+  k.kdv_tutari = net * parseFloat(k.kdv_orani||20) / 100;
+  k.toplam_tutar = net + k.kdv_tutari;
+  return k;
+}
+
+function toplamGuncelle(){
+  let ara=0,kdv=0;
+  kalemler.forEach(k=>{ hesapla(k); ara+=parseFloat(k.toplam_tutar||0)-parseFloat(k.kdv_tutari||0); kdv+=parseFloat(k.kdv_tutari||0); });
+  document.getElementById('araToplam').textContent = fmt(ara);
+  document.getElementById('kdvToplam').textContent = fmt(kdv);
+  document.getElementById('genelToplam').textContent = fmt(ara+kdv);
+}
+
+function renderKalemler(){
+  const tbody = document.getElementById('kalemBody');
+  if(kalemler.length === 0){
+    tbody.innerHTML='<tr id="bos-satir"><td colspan="9" class="text-center text-muted py-3">Yukarıdan ürün arayın veya boş satır ekleyin.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = kalemler.map((k,i)=>`
+  <tr data-i="${i}">
+    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${k.aciklama||''}" oninput="kalemler[${i}].aciklama=this.value" placeholder="Açıklama…"></td>
+    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end" value="${k.miktar||1}" min="0.001" step="any" oninput="kalemler[${i}].miktar=+this.value;toplamGuncelle()"></td>
+    <td><input type="text" class="form-control form-control-sm border-0 bg-transparent" value="${k.birim||'Adet'}" oninput="kalemler[${i}].birim=this.value"></td>
+    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end" value="${parseFloat(k.birim_fiyat||0).toFixed(4)}" min="0" step="any" oninput="kalemler[${i}].birim_fiyat=+this.value;toplamGuncelle()"></td>
+    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end" value="${k.iskonto_orani||0}" min="0" max="100" step="any" oninput="kalemler[${i}].iskonto_orani=+this.value;toplamGuncelle()"></td>
+    <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-end" value="${k.kdv_orani||20}" min="0" max="100" step="any" oninput="kalemler[${i}].kdv_orani=+this.value;toplamGuncelle()"></td>
+    <td class="text-end text-muted small">${fmt(hesapla(k).kdv_tutari)}</td>
+    <td class="text-end fw-semibold">${fmt(k.toplam_tutar)}</td>
+    <td><button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="kalemSil(${i})"><i class="bi bi-trash"></i></button></td>
+  </tr>`).join('');
+  toplamGuncelle();
+}
+
+function kalemSil(i){ kalemler.splice(i,1); renderKalemler(); }
+
+function bosSatirEkle(){
+  kalemler.push({stok_id:'',aciklama:'',miktar:1,birim:'Adet',birim_fiyat:0,iskonto_orani:0,kdv_orani:20,kdv_tutari:0,toplam_tutar:0});
+  renderKalemler();
+}
+
+// Stok arama
+const stokInput = document.getElementById('stokAra');
+const stokSonuc = document.getElementById('stokSonuc');
+let debounceTimer;
+stokInput.addEventListener('input', function(){
+  clearTimeout(debounceTimer);
+  const q = this.value.trim();
+  if(q.length < 2){ stokSonuc.style.display='none'; return; }
+  debounceTimer = setTimeout(()=>{
+    fetch(`/stok/api/search?q=${encodeURIComponent(q)}`)
+      .then(r=>r.json()).then(list=>{
+        if(!list.length){ stokSonuc.style.display='none'; return; }
+        const teklifPB = document.getElementById('paraBirimi').value;
+        stokSonuc.innerHTML = list.map(s=>{
+          // Stokun kendi PB → TRY → teklif PB
+          const stokPB = s.satis_para_birimi || 'TRY';
+          const fiyatTRY = tryeCevir(s.satis_fiyati, stokPB);
+          const fiyatPB = tryDonustur(fiyatTRY, teklifPB);
+          const fiyatGoster = new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4}).format(fiyatPB);
+          const marka = s.marka ? `<span class="text-muted me-1">${s.marka}</span>` : '';
+          return `<a href="#" class="dropdown-item small" data-stok='${JSON.stringify(s)}'>
+            <span class="badge bg-light text-dark border me-1">${s.stok_kodu}</span>
+            ${marka}${s.ad} <span class="text-muted ms-1">${sembol()}${fiyatGoster}</span>
+          </a>`;
+        }).join('');
+        stokSonuc.style.display='block';
+        stokSonuc.querySelectorAll('a').forEach(a=>{
+          a.addEventListener('click', e=>{
+            e.preventDefault();
+            const s = JSON.parse(a.dataset.stok);
+            const teklifPB = document.getElementById('paraBirimi').value;
+            // Stokun kendi satış para birimi → önce TRY'ye, sonra teklif PB'sine çevir
+            const stokPB = s.satis_para_birimi || 'TRY';
+            const fiyatTRY = tryeCevir(s.satis_fiyati, stokPB);
+            const fiyat = tryDonustur(fiyatTRY, teklifPB);
+            kalemler.push({stok_id:s.id,aciklama:s.ad,miktar:1,birim:s.birim,
+              birim_fiyat:+fiyat.toFixed(4),iskonto_orani:0,
+              kdv_orani:s.kdv_orani,kdv_tutari:0,toplam_tutar:0});
+            renderKalemler();
+            stokInput.value='';
+            stokSonuc.style.display='none';
+          });
+        });
+      });
+  }, 250);
+});
+document.addEventListener('click', e=>{ if(!e.target.closest('#stokAra,#stokSonuc')) stokSonuc.style.display='none'; });
+
+document.getElementById('teklifForm').addEventListener('submit', function(){
+  kalemler.forEach(hesapla);
+  document.getElementById('kalemlerJson').value = JSON.stringify(kalemler);
+});
+
+// Kurları yükle
+fetch('/api/son-kurlar').then(r=>r.json()).then(d=>{ _kurlar=d; guncelleKurGosterge(); });
+
+function guncelleKurGosterge(){
+  const pb = document.getElementById('paraBirimi').value;
+  const col = document.getElementById('kurBilgiCol');
+  const gosterge = document.getElementById('kurGosterge');
+  if(pb === 'TRY'){ col.style.display='none'; return; }
+  col.style.display='';
+  if(_kurlar[pb]){ gosterge.textContent = parseFloat(_kurlar[pb].satis).toFixed(4) + ' ₺ (' + _kurlar[pb].tarih + ')'; }
+  else { gosterge.textContent = 'Kur yok – Dashboard\'dan güncelleyin'; }
+}
+
+document.getElementById('paraBirimi').addEventListener('change', function(){
+  const yeniPB = this.value;
+  const eskiPB = _oncekiPB;
+  if(yeniPB === eskiPB) return;
+
+  if(kalemler.length > 0){
+    const uyari = eskiPB === 'TRY'
+      ? `Fiyatlar TRY'den ${yeniPB}'a (${_kurlar[yeniPB]?.satis ? _kurlar[yeniPB].satis.toFixed(4)+' ₺ kuru ile' : 'kur bilgisi yok'}) çevrilsin mi?`
+      : `Fiyatlar ${eskiPB}'dan ${yeniPB}'a dönüştürülsün mü?`;
+
+    if(confirm(uyari)){
+      kalemler.forEach(k=>{
+        // önce TRY'ye çevir, sonra hedefe
+        const tryTutar = tryeCevir(parseFloat(k.birim_fiyat||0), eskiPB);
+        k.birim_fiyat = +tryDonustur(tryTutar, yeniPB).toFixed(4);
+      });
+      renderKalemler();
+    }
+  }
+
+  _oncekiPB = yeniPB;
+  guncelleKurGosterge();
+});
+guncelleKurGosterge();
+
+// Init
+if(KALEMLER_INIT.length){ kalemler = KALEMLER_INIT; renderKalemler(); }
+</script>
+{% endblock %}

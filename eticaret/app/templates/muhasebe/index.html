@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Yevmiye Defteri{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Yevmiye</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>Yevmiye Defteri</h4>
+  <a href="{{ url_for('muhasebe.yeni') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Yeni Yevmiye
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2">
+      <div class="col-md-5">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Açıklama veya belge no ara..." value="{{ q }}">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead><tr><th>Tarih</th><th>Belge No</th><th>Tip</th><th>Açıklama</th><th class="text-end">Borç</th><th class="text-end">Alacak</th></tr></thead>
+      <tbody>
+        {% for k in kayitlar %}
+        <tr onclick="location.href='{{ url_for('muhasebe.detail', id=k.id) }}'" style="cursor:pointer">
+          <td>{{ k.tarih | format_tarih }}</td>
+          <td><a href="{{ url_for('muhasebe.detail', id=k.id) }}" class="text-decoration-none fw-semibold text-primary">{{ k.belge_no or '—' }}</a></td>
+          <td><span class="badge bg-secondary">{{ k.belge_tipi or 'diger' }}</span></td>
+          <td>{{ k.aciklama }}</td>
+          <td class="text-end">{{ k.kalemler | sum(attribute='borc') | float | format_para }}</td>
+          <td class="text-end">{{ k.kalemler | sum(attribute='alacak') | float | format_para }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Yevmiye kaydı yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

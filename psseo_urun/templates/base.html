@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}psSEO Ürün{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background: #f8f9fa; }
+    .sidebar { min-height: 100vh; background: #1e2a38; color: #cdd5df; }
+    .sidebar a { color: #cdd5df; text-decoration: none; display: block; padding: .5rem 1rem; border-radius: .375rem; }
+    .sidebar a:hover, .sidebar a.active { background: #2d3f52; color: #fff; }
+    .sidebar .nav-section { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: #6c8097; padding: .75rem 1rem .25rem; }
+    .main-content { padding: 1.5rem; }
+    .seo-preview { background: #fff; border: 1px solid #dee2e6; border-radius: .5rem; padding: 1rem; }
+    .seo-preview h2, .seo-preview h3 { font-size: 1.1rem; }
+    .badge-uretilmedi { background: #dee2e6; color: #495057; }
+    .badge-uretildi   { background: #cff4fc; color: #0c6478; }
+    .badge-onaylandi  { background: #d1e7dd; color: #0a3622; }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar d-flex flex-column p-3" style="width:220px;min-width:220px">
+    <div class="fw-bold fs-5 mb-3 text-white">
+      <i class="bi bi-search-heart me-2"></i>psSEO
+    </div>
+    <span class="nav-section">Ürünler</span>
+    <a href="{% url 'urun:liste' %}" class="{% if request.resolver_match.url_name == 'liste' %}active{% endif %}">
+      <i class="bi bi-grid me-2"></i>Ürün Listesi
+    </a>
+    <a href="{% url 'urun:ekle' %}">
+      <i class="bi bi-plus-circle me-2"></i>Ürün Ekle
+    </a>
+    <a href="{% url 'urun:import' %}">
+      <i class="bi bi-upload me-2"></i>Excel Import
+    </a>
+    <a href="{% url 'urun:export' %}">
+      <i class="bi bi-download me-2"></i>Excel Export
+    </a>
+    <span class="nav-section mt-3">SEO</span>
+    <a href="{% url 'seo:export' %}">
+      <i class="bi bi-file-earmark-excel me-2"></i>SEO Export
+    </a>
+    <a href="{% url 'seo:ps_export' %}">
+      <i class="bi bi-filetype-csv me-2"></i>PrestaShop CSV
+    </a>
+    <div class="mt-auto pt-3 border-top border-secondary small text-secondary">
+      PrestaShop 1.7.8.11
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="main-content flex-grow-1">
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

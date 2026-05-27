@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Yeni Yevmiye{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('muhasebe.index') }}">Yevmiye</a></li>
+<li class="breadcrumb-item active">Yeni</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3 fw-bold"><i class="bi bi-journal-plus me-2 text-primary"></i>Yeni Yevmiye Fişi</h4>
+
+<form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Tarih *</label>
+          <input type="text" name="tarih" class="form-control datepicker" value="{{ now().strftime('%d.%m.%Y') }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Belge No</label>
+          <input type="text" name="belge_no" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Açıklama *</label>
+          <input type="text" name="aciklama" class="form-control" required>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-semibold">Kayıt Kalemleri</h6>
+      <button type="button" class="btn btn-sm btn-outline-primary" onclick="satirEkle()">
+        <i class="bi bi-plus-lg me-1"></i>Satır Ekle
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table kalem-table mb-0">
+        <thead class="table-light">
+          <tr><th style="width:20%">Hesap Kodu</th><th style="width:30%">Hesap Adı</th><th style="width:22%">Açıklama</th><th style="width:12%" class="text-end">Borç</th><th style="width:12%" class="text-end">Alacak</th><th style="width:4%"></th></tr>
+        </thead>
+        <tbody id="kalemBody"></tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-white">
+      <div class="row justify-content-end">
+        <div class="col-md-4">
+          <table class="table table-sm mb-0 small">
+            <tr><td class="text-muted">Toplam Borç:</td><td class="text-end fw-semibold" id="toplamBorc">0,00 ₺</td></tr>
+            <tr><td class="text-muted">Toplam Alacak:</td><td class="text-end fw-semibold" id="toplamAlacak">0,00 ₺</td></tr>
+            <tr><td class="fw-bold">Fark:</td><td class="text-end fw-bold" id="fark">0,00 ₺</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+    <a href="{{ url_for('muhasebe.index') }}" class="btn btn-outline-secondary">İptal</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let sayac = 0;
+const hesaplar = {{ hesaplar | tojson }};
+
+function satirEkle() {
+  const idx = sayac++;
+  const tr = document.createElement('tr');
+  tr.id = `satir-${idx}`;
+  tr.innerHTML = `
+    <td>
+      <input type="text" name="hesap_kodu[]" class="form-control form-control-sm hesap-kodu" data-idx="${idx}"
+             list="hesap-list" placeholder="Kod..." oninput="hesaplaToplamlar()">
+    </td>
+    <td>
+      <input type="text" class="form-control form-control-sm hesap-ad" id="hesap-ad-${idx}" placeholder="—" readonly>
+    </td>
+    <td><input type="text" name="kalem_aciklama[]" class="form-control form-control-sm"></td>
+    <td><input type="number" step="0.01" name="borc[]" class="form-control form-control-sm text-end" value="0" oninput="hesaplaToplamlar()"></td>
+    <td><input type="number" step="0.01" name="alacak[]" class="form-control form-control-sm text-end" value="0" oninput="hesaplaToplamlar()"></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="satirSil(${idx})"><i class="bi bi-x"></i></button></td>
+  `;
+  document.getElementById('kalemBody').appendChild(tr);
+  tr.querySelector('.hesap-kodu').addEventListener('change', function() {
+    const h = hesaplar.find(x => x.kod === this.value);
+    document.getElementById(`hesap-ad-${idx}`).value = h ? h.ad : '';
+  });
+}
+
+function satirSil(idx) {
+  const tr = document.getElementById(`satir-${idx}`);
+  if (tr) tr.remove();
+  hesaplaToplamlar();
+}
+
+function hesaplaToplamlar() {
+  let borc = 0, alacak = 0;
+  document.querySelectorAll('input[name="borc[]"]').forEach(i => borc += parseFloat(i.value) || 0);
+  document.querySelectorAll('input[name="alacak[]"]').forEach(i => alacak += parseFloat(i.value) || 0);
+  document.getElementById('toplamBorc').textContent = App.formatMoney(borc);
+  document.getElementById('toplamAlacak').textContent = App.formatMoney(alacak);
+  const fark = borc - alacak;
+  document.getElementById('fark').textContent = App.formatMoney(Math.abs(fark));
+  document.getElementById('fark').className = 'text-end fw-bold ' + (Math.abs(fark) < 0.01 ? 'text-success' : 'text-danger');
+}
+
+// Datalist for hesap autocomplete
+const dl = document.createElement('datalist');
+dl.id = 'hesap-list';
+hesaplar.forEach(h => {
+  const opt = document.createElement('option');
+  opt.value = h.kod;
+  opt.label = h.ad;
+  dl.appendChild(opt);
+});
+document.body.appendChild(dl);
+
+// Start with 2 rows
+satirEkle(); satirEkle();
+</script>
+{% endblock %}

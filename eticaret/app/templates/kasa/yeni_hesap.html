@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Yeni Kasa Hesabı{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('kasa.index') }}">Kasa</a></li>
+<li class="breadcrumb-item active">Yeni Hesap</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3 fw-bold"><i class="bi bi-plus-circle me-2 text-primary"></i>Yeni Kasa / Banka Hesabı</h4>
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Hesap Adı *</label>
+          <input type="text" name="ad" class="form-control" placeholder="Merkez Kasa, İş Bankası..." required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Hesap Tipi</label>
+          <select name="hesap_tipi" class="form-select">
+            <option value="kasa">Kasa</option>
+            <option value="banka">Banka</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Para Birimi</label>
+          <select name="para_birimi" class="form-select">
+            <option value="TRY">TRY (₺)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Banka Adı</label>
+          <input type="text" name="banka_adi" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Hesap No</label>
+          <input type="text" name="hesap_no" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">IBAN</label>
+          <input type="text" name="iban" class="form-control" placeholder="TR...">
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+        <a href="{{ url_for('kasa.index') }}" class="btn btn-outline-secondary">İptal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

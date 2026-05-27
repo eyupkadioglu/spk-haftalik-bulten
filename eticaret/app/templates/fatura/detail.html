@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}{{ fatura.fatura_no }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('fatura.index', tip=fatura.fatura_tipi) }}">Faturalar</a></li>
+<li class="breadcrumb-item active">{{ fatura.fatura_no }}</li>
+{% endblock %}
+
+{% block content %}
+{% set lbl = DURUM_LABELS.get(fatura.durum, (fatura.durum, 'secondary')) %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-1 fw-bold"><i class="bi bi-receipt me-2 text-primary"></i>{{ fatura.fatura_no }}</h4>
+    <span class="badge bg-{{ lbl[1] }}">{{ lbl[0] }}</span>
+    {% if fatura.fatura_tipi == 'satis' %}<span class="badge bg-primary ms-1">Satış</span>{% else %}<span class="badge bg-secondary ms-1">Alış</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('fatura.yazdir', id=fatura.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i>Yazdır
+    </a>
+    {% if fatura.durum == 'taslak' %}
+    <form method="POST" action="{{ url_for('fatura.onayla', id=fatura.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Onayla</button>
+    </form>
+    <form method="POST" action="{{ url_for('fatura.iptal', id=fatura.id) }}" onsubmit="return App.confirmDelete('Faturayı iptal etmek istediğinizden emin misiniz?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-danger btn-sm">İptal</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm p-3">
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Cari</dt>
+        <dd class="col-7"><a href="{{ url_for('cari.detail', id=fatura.cari.id) }}" class="text-decoration-none">{{ fatura.cari.unvan }}</a></dd>
+        <dt class="col-5 text-muted">Fatura Tarihi</dt><dd class="col-7">{{ fatura.fatura_tarihi | format_tarih }}</dd>
+        <dt class="col-5 text-muted">Vade Tarihi</dt><dd class="col-7">{{ fatura.vade_tarihi | format_tarih if fatura.vade_tarihi else '—' }}</dd>
+        <dt class="col-5 text-muted">Ödeme Şekli</dt><dd class="col-7">{{ fatura.odeme_sekli or '—' }}</dd>
+        {% if fatura.notlar %}<dt class="col-5 text-muted">Not</dt><dd class="col-7">{{ fatura.notlar }}</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3">
+      <table class="table table-sm mb-0 small">
+        <tr><td class="text-muted">KDV Hariç</td><td class="text-end">{{ fatura.ara_toplam | format_para }}</td></tr>
+        <tr><td class="text-muted">KDV</td><td class="text-end">{{ fatura.kdv_toplam | format_para }}</td></tr>
+        <tr class="table-active"><td class="fw-bold">Genel Toplam</td><td class="text-end fw-bold">{{ fatura.genel_toplam | format_para }}</td></tr>
+        <tr><td class="text-muted">Ödenen</td><td class="text-end text-success">{{ fatura.odenen_tutar | format_para }}</td></tr>
+        <tr><td class="fw-semibold text-danger">Kalan</td><td class="text-end fw-bold text-danger">{{ fatura.kalan_tutar | format_para }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0 fw-semibold">Kalemler</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>#</th><th>Ürün / Açıklama</th><th>Birim</th><th class="text-end">Miktar</th><th class="text-end">Birim Fiyat</th><th class="text-end">İsk%</th><th class="text-end">KDV%</th><th class="text-end">KDV Tutar</th><th class="text-end">Toplam</th></tr></thead>
+      <tbody>
+        {% for k in fatura.kalemler %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ k.aciklama }}</td>
+          <td>{{ k.birim }}</td>
+          <td class="text-end">{{ k.miktar | format_miktar }}</td>
+          <td class="text-end">{{ k.birim_fiyat | format_para }}</td>
+          <td class="text-end">%{{ k.iskonto_orani }}</td>
+          <td class="text-end">%{{ k.kdv_orani }}</td>
+          <td class="text-end">{{ k.kdv_tutari | format_para }}</td>
+          <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

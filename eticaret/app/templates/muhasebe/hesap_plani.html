@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Hesap Planı{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Hesap Planı</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-list-columns-reverse me-2 text-primary"></i>Hesap Planı</h4>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3">
+      <h6 class="fw-semibold mb-3">Yeni Hesap Ekle</h6>
+      <form method="POST" action="{{ url_for('muhasebe.hesap_yeni') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-2">
+          <input type="text" name="kod" class="form-control form-control-sm" placeholder="Hesap kodu (ör: 100)" required>
+        </div>
+        <div class="mb-2">
+          <input type="text" name="ad" class="form-control form-control-sm" placeholder="Hesap adı" required>
+        </div>
+        <div class="mb-2">
+          <select name="tip" class="form-select form-select-sm">
+            <option value="aktif">Aktif</option>
+            <option value="pasif">Pasif</option>
+            <option value="gelir">Gelir</option>
+            <option value="gider">Gider</option>
+            <option value="oz_kaynak">Öz Kaynak</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <input type="text" name="ust_kod" class="form-control form-control-sm" placeholder="Üst hesap kodu (opsiyonel)">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100">Ekle</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+          <thead><tr><th>Kod</th><th>Hesap Adı</th><th>Tip</th><th>Üst Hesap</th></tr></thead>
+          <tbody>
+            {% for h in tum_hesaplar %}
+            <tr>
+              <td class="fw-semibold">{{ h.kod }}</td>
+              <td>{% set indent = (h.kod|length // 3 - 1) %}{% for i in range(indent) %}&nbsp;&nbsp;{% endfor %}{{ h.ad }}</td>
+              <td><span class="badge bg-secondary">{{ h.tip }}</span></td>
+              <td class="text-muted">{{ h.ust_kod or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Hesap yok.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Profil</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-person-circle me-2 text-primary"></i>Profil</h4>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Ad Soyad</label>
+            <input type="text" name="full_name" class="form-control" value="{{ current_user.full_name }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">E-posta</label>
+            <input type="email" name="email" class="form-control" value="{{ current_user.email }}">
+          </div>
+          <hr>
+          <div class="mb-3">
+            <label class="form-label">Yeni Şifre <span class="text-muted">(boş bırakın = değişmez)</span></label>
+            <input type="password" name="new_password" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Şifre Tekrar</label>
+            <input type="password" name="confirm_password" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Kaydet
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

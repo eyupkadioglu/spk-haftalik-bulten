@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Yevmiye {{ kayit.belge_no }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('muhasebe.index') }}">Yevmiye</a></li>
+<li class="breadcrumb-item active">{{ kayit.belge_no or kayit.id }}</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3 fw-bold"><i class="bi bi-journal-check me-2 text-primary"></i>
+  Yevmiye — {{ kayit.belge_no or '#' + kayit.id|string }}
+</h4>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm p-3">
+      <dl class="row mb-0 small">
+        <dt class="col-4 text-muted">Tarih</dt><dd class="col-8">{{ kayit.tarih | format_tarih }}</dd>
+        <dt class="col-4 text-muted">Belge No</dt><dd class="col-8">{{ kayit.belge_no or '—' }}</dd>
+        <dt class="col-4 text-muted">Tip</dt><dd class="col-8">{{ kayit.belge_tipi or '—' }}</dd>
+        <dt class="col-4 text-muted">Açıklama</dt><dd class="col-8">{{ kayit.aciklama }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Hesap Kodu</th><th>Hesap Adı</th><th>Açıklama</th><th class="text-end">Borç</th><th class="text-end">Alacak</th></tr></thead>
+      <tbody>
+        {% for k in kayit.kalemler %}
+        <tr>
+          <td class="fw-semibold">{{ k.hesap_kodu }}</td>
+          <td>{{ k.hesap.ad if k.hesap else '—' }}</td>
+          <td class="text-muted">{{ k.aciklama or '—' }}</td>
+          <td class="text-end {% if k.borc > 0 %}fw-semibold{% endif %}">{{ k.borc | format_para if k.borc > 0 else '' }}</td>
+          <td class="text-end {% if k.alacak > 0 %}fw-semibold{% endif %}">{{ k.alacak | format_para if k.alacak > 0 else '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr>
+          <td colspan="3" class="fw-bold text-end">Toplam:</td>
+          <td class="text-end fw-bold">{{ kayit.kalemler | sum(attribute='borc') | float | format_para }}</td>
+          <td class="text-end fw-bold">{{ kayit.kalemler | sum(attribute='alacak') | float | format_para }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

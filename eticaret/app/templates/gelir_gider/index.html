@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Gelir / Gider{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Gelir / Gider</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Gelir / Gider</h4>
+  <a href="{{ url_for('gelir_gider.yeni') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Yeni Kayıt
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <select name="tip" class="form-select form-select-sm">
+          <option value="">Tümü</option>
+          <option value="gelir" {{ 'selected' if tip == 'gelir' }}>Gelir</option>
+          <option value="gider" {{ 'selected' if tip == 'gider' }}>Gider</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <select name="kategori_id" class="form-select form-select-sm">
+          <option value="">Tüm Kategoriler</option>
+          {% for k in kategoriler %}
+          <option value="{{ k.id }}" {{ 'selected' if kategori_id == k.id }}>{{ k.ad }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <select name="yil" class="form-select form-select-sm">
+          {% for y in range(now().year, now().year - 5, -1) %}
+          <option value="{{ y }}" {{ 'selected' if yil == y }}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
+        <a href="{{ url_for('gelir_gider.index') }}" class="btn btn-outline-secondary btn-sm">Temizle</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% set toplam_gelir = kayitlar | selectattr('tip', 'eq', 'gelir') | sum(attribute='tutar') | float %}
+{% set toplam_gider = kayitlar | selectattr('tip', 'eq', 'gider') | sum(attribute='tutar') | float %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="text-muted small">Toplam Gelir</div>
+      <div class="fw-bold fs-5 text-success">{{ toplam_gelir | format_para }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="text-muted small">Toplam Gider</div>
+      <div class="fw-bold fs-5 text-danger">{{ toplam_gider | format_para }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="text-muted small">Net</div>
+      <div class="fw-bold fs-5 {% if (toplam_gelir - toplam_gider) >= 0 %}text-success{% else %}text-danger{% endif %}">
+        {{ (toplam_gelir - toplam_gider) | format_para }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead><tr><th>Tarih</th><th>Tip</th><th>Kategori</th><th>Açıklama</th><th>Belge No</th><th class="text-end">Tutar</th><th></th></tr></thead>
+      <tbody>
+        {% for g in kayitlar %}
+        <tr>
+          <td>{{ g.tarih | format_tarih }}</td>
+          <td>
+            {% if g.tip == 'gelir' %}<span class="badge bg-success">Gelir</span>
+            {% else %}<span class="badge bg-danger">Gider</span>{% endif %}
+          </td>
+          <td>{{ g.kategori.ad if g.kategori else '—' }}</td>
+          <td>{{ g.aciklama or '—' }}</td>
+          <td class="text-muted">{{ g.belge_no or '—' }}</td>
+          <td class="text-end fw-semibold {% if g.tip == 'gelir' %}text-success{% else %}text-danger{% endif %}">
+            {{ g.tutar | format_para }}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('gelir_gider.sil', id=g.id) }}"
+                  onsubmit="return App.confirmDelete()">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Kayıt yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

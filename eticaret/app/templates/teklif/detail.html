@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}{{ teklif.teklif_no }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('teklif.index') }}">Teklifler</a></li>
+<li class="breadcrumb-item active">{{ teklif.teklif_no }}</li>
+{% endblock %}
+
+{% block content %}
+{% set cls,lbl = durum_labels.get(teklif.durum, ('secondary','?')) %}
+{% set pb_sembol = {'TRY':'₺','USD':'$','EUR':'€'}.get(teklif.para_birimi,'₺') %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-1 fw-bold">
+      {{ teklif.teklif_no }}
+      <span class="badge bg-{{ cls }} ms-1">{{ lbl }}</span>
+    </h4>
+    <span class="text-muted small">{{ teklif.cari.unvan }}</span>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('teklif.yazdir', id=teklif.id) }}" target="_blank"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i>Yazdır / PDF
+    </a>
+
+    {% if teklif.durum == 'siparise_donustu' %}
+      <a href="{{ url_for('siparis.detail', id=teklif.siparis_id) }}" class="btn btn-sm btn-success">
+        <i class="bi bi-cart-check me-1"></i>Siparişi Görüntüle: {{ teklif.siparis.siparis_no }}
+      </a>
+    {% elif teklif.durum != 'iptal' %}
+      <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#gonderModal">
+        <i class="bi bi-send me-1"></i>Müşteriye Gönder
+      </button>
+
+      {% if teklif.durum in ('taslak','gonderildi') %}
+      <a href="{{ url_for('teklif.duzenle', id=teklif.id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i>Düzenle
+      </a>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('teklif.sipariste_donustur', id=teklif.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-primary"
+                onclick="return confirm('Müşteri kabul etti — siparişe dönüştürülsün mü?')">
+          <i class="bi bi-arrow-right-circle me-1"></i>Müşteri Kabul Etti → Siparişe Dönüştür
+        </button>
+      </form>
+
+      <form method="POST" action="{{ url_for('teklif.iptal', id=teklif.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Teklifi iptal etmek istiyor musunuz?')">İptal</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Bilgi kartları -->
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <dl class="row small mb-0">
+          <dt class="col-5 text-muted">Cari</dt>
+          <dd class="col-7 fw-semibold">
+            <a href="{{ url_for('cari.detail', id=teklif.cari_id) }}" class="text-decoration-none">
+              {{ teklif.cari.unvan }}
+            </a>
+          </dd>
+          <dt class="col-5 text-muted">Telefon</dt>
+          <dd class="col-7">{{ teklif.cari.telefon or '—' }}</dd>
+          <dt class="col-5 text-muted">E-posta</dt>
+          <dd class="col-7">{{ teklif.cari.email or '—' }}</dd>
+          <dt class="col-5 text-muted">Teklif Tarihi</dt>
+          <dd class="col-7">{{ teklif.teklif_tarihi|format_tarih }}</dd>
+          <dt class="col-5 text-muted">Geçerlilik</dt>
+          <dd class="col-7">{{ teklif.gecerlilik_tarihi|format_tarih if teklif.gecerlilik_tarihi else '—' }}</dd>
+          <dt class="col-5 text-muted">Oluşturan</dt>
+          <dd class="col-7">{{ teklif.user.full_name if teklif.user else '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <dl class="row small mb-0">
+          <dt class="col-5 text-muted">Para Birimi</dt>
+          <dd class="col-7 fw-semibold">{{ teklif.para_birimi or 'TRY' }}</dd>
+          <dt class="col-5 text-muted">Ara Toplam</dt>
+          <dd class="col-7">{{ pb_sembol }} {{ teklif.ara_toplam|format_para(prefix='') }}</dd>
+          <dt class="col-5 text-muted">KDV</dt>
+          <dd class="col-7">{{ pb_sembol }} {{ teklif.kdv_toplam|format_para(prefix='') }}</dd>
+          <dt class="col-5 text-muted fw-bold fs-6">Genel Toplam</dt>
+          <dd class="col-7 fw-bold fs-5 text-primary">
+            {{ pb_sembol }} {{ teklif.genel_toplam|format_para(prefix='') }}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if teklif.notlar %}
+<div class="alert alert-light border mb-3 small"><strong>Notlar:</strong> {{ teklif.notlar }}</div>
+{% endif %}
+
+<!-- Kalemler -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom fw-semibold small">Teklif Kalemleri</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Ürün / Açıklama</th>
+          <th class="text-end">Miktar</th><th>Birim</th>
+          <th class="text-end">Birim Fiyat</th><th class="text-end">İsk %</th>
+          <th class="text-end">KDV %</th><th class="text-end">KDV</th>
+          <th class="text-end">Toplam</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k in kalemler %}
+        <tr>
+          <td class="text-muted">{{ loop.index }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if k.stok and k.stok.resim %}
+              <img src="{{ url_for('static', filename=k.stok.resim) }}"
+                   alt="{{ k.stok.ad }}" class="rounded border"
+                   style="width:36px;height:36px;object-fit:cover;flex-shrink:0;">
+              {% endif %}
+              <div>
+                {% if k.stok %}
+                  <span class="badge bg-light text-dark border me-1">{{ k.stok.stok_kodu }}</span>
+                {% endif %}
+                {{ k.aciklama or (k.stok.ad if k.stok else '—') }}
+              </div>
+            </div>
+          </td>
+          <td class="text-end">{{ k.miktar|round(2) }}</td>
+          <td>{{ k.birim }}</td>
+          <td class="text-end">{{ pb_sembol }}{{ k.birim_fiyat|format_para(prefix='') }}</td>
+          <td class="text-end">{{ k.iskonto_orani|round(2) }}%</td>
+          <td class="text-end">{{ k.kdv_orani|round(0)|int }}%</td>
+          <td class="text-end">{{ pb_sembol }}{{ k.kdv_tutari|format_para(prefix='') }}</td>
+          <td class="text-end fw-semibold">{{ pb_sembol }}{{ k.toplam_tutar|format_para(prefix='') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light fw-semibold">
+        <tr>
+          <td colspan="7" class="text-end">Ara Toplam</td>
+          <td colspan="2" class="text-end">{{ pb_sembol }}{{ teklif.ara_toplam|format_para(prefix='') }}</td>
+        </tr>
+        <tr>
+          <td colspan="7" class="text-end">KDV</td>
+          <td colspan="2" class="text-end">{{ pb_sembol }}{{ teklif.kdv_toplam|format_para(prefix='') }}</td>
+        </tr>
+        <tr class="fs-6">
+          <td colspan="7" class="text-end">Genel Toplam</td>
+          <td colspan="2" class="text-end text-primary">{{ pb_sembol }}{{ teklif.genel_toplam|format_para(prefix='') }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- Gönder Modal -->
+<div class="modal fade" id="gonderModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold">
+          <i class="bi bi-send me-2 text-success"></i>Müşteriye Gönder — {{ teklif.teklif_no }}
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="gonderYukleniyor" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+          Hazırlanıyor…
+        </div>
+        <div id="gonderIcerik" style="display:none">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Gönderilecek Mesaj</label>
+            <textarea id="gonderMesaj" class="form-control form-control-sm" rows="7" readonly></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <a id="btnEmail" href="#" target="_blank"
+               class="btn btn-outline-primary">
+              <i class="bi bi-envelope me-2"></i>E-posta ile Gönder
+              <small class="d-block text-muted" id="emailAdr"></small>
+            </a>
+            <a id="btnWhatsapp" href="#" target="_blank"
+               class="btn btn-success">
+              <i class="bi bi-whatsapp me-2"></i>WhatsApp ile Gönder
+              <small class="d-block" id="waTel"></small>
+            </a>
+          </div>
+          <div class="alert alert-light border mt-3 mb-0 small">
+            <i class="bi bi-info-circle me-1"></i>
+            Gönderdikten sonra durum otomatik <strong>Gönderildi</strong> olarak güncellenir.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('gonderModal').addEventListener('show.bs.modal', function() {
+  document.getElementById('gonderYukleniyor').style.display = '';
+  document.getElementById('gonderIcerik').style.display = 'none';
+
+  fetch('{{ url_for("teklif.gonder_bilgi", id=teklif.id) }}')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('gonderMesaj').value = d.mesaj;
+      document.getElementById('btnEmail').href = d.mailto;
+      document.getElementById('emailAdr').textContent = d.email || '(e-posta girilmemiş)';
+      document.getElementById('btnWhatsapp').href = d.whatsapp;
+      document.getElementById('waTel').textContent = d.telefon || '(telefon girilmemiş)';
+      document.getElementById('gonderYukleniyor').style.display = 'none';
+      document.getElementById('gonderIcerik').style.display = '';
+    });
+});
+
+// E-posta veya WA tıklandığında durumu "gonderildi" yap
+['btnEmail','btnWhatsapp'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function() {
+    {% if teklif.durum == 'taslak' %}
+    fetch('{{ url_for("teklif.gonder", id=teklif.id) }}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': App.csrfToken() }
+    }).then(() => {
+      // badge güncelle
+      document.querySelector('.badge.bg-secondary')?.classList.replace('bg-secondary','bg-info');
+      document.querySelector('.badge.bg-info')?.textContent !== undefined &&
+        (document.querySelectorAll('.badge')[0].textContent = 'Gönderildi');
+    });
+    {% endif %}
+  });
+});
+</script>
+{% endblock %}

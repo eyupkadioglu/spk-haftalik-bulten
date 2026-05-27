@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <title>Site Analiz Raporu</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            color: #222;
+            margin: 20px;
+            background: #f7f7f7;
+        }
+        h1 {
+            margin-bottom: 8px;
+        }
+        .meta {
+            margin-bottom: 16px;
+            color: #555;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+        th, td {
+            border: 1px solid #dcdcdc;
+            padding: 8px 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+        th {
+            background: #efefef;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #fff;
+        }
+        .yes { background: #138a36; }
+        .no { background: #b42318; }
+        .small {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        a {
+            color: #0b57d0;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .note {
+            margin-top: 14px;
+            font-size: 12px;
+            color: #555;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Site Analiz Raporu</h1>
+    <div class="meta">
+        Oluşturulma zamanı: <strong>2026-03-23 20:58:19</strong><br>
+        Toplam site sayısı: <strong>1</strong>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Site</th>
+                <th>HTTP</th>
+                <th>Türkçe Desteği</th>
+                <th>Türkçe Desteği Bulguları</th>
+                <th>Türkiye Telefonu</th>
+                <th>Bulunan Telefonlar</th>
+                <th>Üyelik / Online Hesap</th>
+                <th>Üyelik Bulguları</th>
+                <th>İletişim Sayfaları</th>
+                <th>Üyelik Sayfaları</th>
+                <th>Hata / Not</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        <tr>
+            <td>1</td>
+            <td>
+                <div><strong>https://kbcteknik.com.tr</strong></div>
+                <div class="small"><a href="https://www.kbcteknik.com.tr/" target="_blank">https://www.kbcteknik.com.tr/</a></div>
+            </td>
+            <td>200</td>
+            <td><span class="badge yes">Evet</span></td>
+            <td>HTML lang=&#x27;tr&#x27;<br>Sayfa metni Türkçe görünüyor</td>
+            <td><span class="badge yes">Evet</span></td>
+            <td>0534 725 37 17</td>
+            <td><span class="badge yes">Evet</span></td>
+            <td>Üyelik / hesap bağlantıları bulundu<br>Şifre alanı bulundu<br>Email + şifre formu bulundu<br>&#x27;hesap oluştur&#x27; ifadesi bulundu<br>&#x27;oturum aç&#x27; ifadesi bulundu<br>&#x27;my account&#x27; ifadesi bulundu</td>
+            <td>https://www.kbcteknik.com.tr/content/7-hakkimizda</td>
+            <td>https://www.kbcteknik.com.tr/oturum-ac?back=https://www.kbcteknik.com.tr/<br>https://www.kbcteknik.com.tr/oturum-ac?create_account=1<br>https://www.kbcteknik.com.tr/oturum-ac</td>
+            <td>-</td>
+        </tr>
+        
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>Not:</strong><br>
+        - Bu analiz HTML içeriği ve sayfa bağlantıları üzerinden heuristik olarak yapılır.<br>
+        - JS ile sonradan yüklenen içeriklerde bazı bulgular kaçabilir.<br>
+        - Türkiye telefon hattı için +90 / 0xxx yapısına göre tespit yapılır.<br>
+        - Üyelik analizi; üye ol, hesap oluştur, giriş formu, şifre alanı ve hesap bağlantıları gibi sinyallere dayanır.
+    </div>
+</body>
+</html>

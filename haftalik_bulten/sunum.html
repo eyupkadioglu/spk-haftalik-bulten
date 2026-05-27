@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPK Haftalık Bülten Sistemi — Proje Sunumu</title>
+<style>
+:root {
+  --navy: #0f1f3d;
+  --blue: #1d4ed8;
+  --blue-light: #3b82f6;
+  --blue-pale: #eff6ff;
+  --ok: #047857;
+  --warn: #b45309;
+  --text: #172033;
+  --muted: #64748b;
+  --border: #d9e1ec;
+  --bg: #f5f7fb;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #1a1a2e;
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Progress bar ── */
+#progress {
+  height: 3px;
+  background: var(--blue-light);
+  transition: width 0.3s;
+  position: fixed;
+  top: 0; left: 0;
+}
+
+/* ── Slide container ── */
+#deck {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.35s, transform 0.35s;
+  pointer-events: none;
+}
+
+.slide.active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.slide.exit {
+  opacity: 0;
+  transform: translateX(-60px);
+}
+
+/* ── Slide layouts ── */
+.slide-cover {
+  background: linear-gradient(145deg, var(--navy) 60%, #1e3a8a);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px;
+}
+
+.slide-cover h1 {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+
+.slide-cover .subtitle {
+  font-size: 18px;
+  color: #93c5fd;
+  margin-bottom: 40px;
+}
+
+.slide-cover .meta {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 32px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 24px;
+}
+
+.slide-cover .badge-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: #e2e8f0;
+}
+
+.slide-content {
+  background: var(--bg);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 22px 48px 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.slide-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.slide-num {
+  font-size: 13px;
+  color: #64748b;
+  background: rgba(255,255,255,0.08);
+  padding: 3px 10px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+
+.slide-body {
+  flex: 1;
+  padding: 36px 48px;
+  overflow-y: auto;
+}
+
+/* ── Cards ── */
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 22px;
+}
+
+.card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card p, .card li {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.card ul { padding-left: 18px; }
+
+.card.accent {
+  border-left: 4px solid var(--blue);
+}
+
+.card.ok {
+  border-left: 4px solid var(--ok);
+}
+
+.card.warn {
+  border-left: 4px solid var(--warn);
+}
+
+/* ── Role badges ── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue-pale);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.role-badge .code {
+  font-weight: 800;
+  color: var(--blue);
+  font-size: 15px;
+  min-width: 42px;
+}
+
+.role-badge .name { color: var(--navy); }
+.role-badge .desc { color: var(--muted); font-size: 12px; }
+
+/* ── Workflow chain ── */
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.flow-step {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  position: relative;
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+}
+
+.flow-step .step-num {
+  background: var(--navy);
+  color: #fff;
+  border-radius: 100px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 auto 6px;
+}
+
+.flow-step .step-label {
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.3;
+  font-size: 11px;
+}
+
+.flow-step .step-role {
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--blue);
+  font-size: 18px;
+  padding: 0 4px;
+}
+
+/* ── Tab display ── */
+.tab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tab-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.tab-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.tab-info h4 { font-size: 14px; color: var(--navy); margin-bottom: 3px; }
+.tab-info p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ── Data model ── */
+.tree {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+.tree .key { color: #93c5fd; }
+.tree .type { color: #86efac; }
+.tree .cmt { color: #64748b; }
+
+/* ── Feature list ── */
+.feat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.feat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.feat-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.feat-text h4 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+.feat-text p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── Section status flow ── */
+.status-pill {
+  display: inline-block;
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-pill.draft { background: #f1f5f9; color: #475569; }
+.status-pill.review { background: #fef3c7; color: #92400e; }
+.status-pill.approved { background: #d1fae5; color: #065f46; }
+.status-pill.pub { background: #dbeafe; color: #1e40af; }
+
+/* ── Heading group table ── */
+.hg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.hg-table th {
+  background: var(--navy);
+  color: #fff;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.hg-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.hg-table tr:nth-child(even) td { background: #f8fafc; }
+.hg-code {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--blue);
+  font-size: 14px;
+}
+
+/* ── Nav controls ── */
+#nav {
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 48px;
+  flex-shrink: 0;
+}
+
+#nav button {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 24px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#nav button:hover:not(:disabled) { background: rgba(255,255,255,0.2); }
+#nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+#slide-counter {
+  color: #94a3b8;
+  font-size: 13px;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .slide-cover h1 { font-size: 28px; }
+  .slide-header h2 { font-size: 20px; }
+  .slide-body { padding: 20px 24px; }
+  .feat-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div id="deck">
+
+  <!-- ═══════════════════════════ SLIDE 1 — KAPAK ═══════════════════════════ -->
+  <section class="slide slide-cover active" data-index="0">
+    <div style="max-width:720px">
+      <div style="font-size:48px;margin-bottom:20px">📋</div>
+      <h1>SPK Haftalık Bülten<br>Yönetim Sistemi</h1>
+      <p class="subtitle">Organizasyon kontrollü içerik hazırlama, onay ve arşivleme prototipi</p>
+      <div class="badge-row">
+        <span class="chip">Saf Tarayıcı Uygulaması</span>
+        <span class="chip">Çok Rollü Onay Akışı</span>
+        <span class="chip">LocalStorage Veri Katmanı</span>
+        <span class="chip">16 Daire · 7 Rol</span>
+      </div>
+      <p class="meta">Sermaye Piyasası Kurulu &nbsp;·&nbsp; 2026</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 2 — PROBLEM ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="1">
+    <div class="slide-header">
+      <span class="slide-num">02</span>
+      <h2>Problem &amp; Kapsam</h2>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-2" style="margin-bottom:16px">
+        <div class="card accent">
+          <h3>Mevcut Durum</h3>
+          <ul>
+            <li>Haftalık bülten içeriği 16 farklı daireden toplanıyor</li>
+            <li>Koordinasyon e-posta / doküman takasıyla yürütülüyor</li>
+            <li>Onay adımları (DBY → DB → KBY → KÖB → Başkan) elle izleniyor</li>
+            <li>Her haftanın arşivi ayrı ayrı PDF olarak saklanıyor</li>
+            <li>Hata ve gecikme riski yüksek, izlenebilirlik düşük</li>
+          </ul>
+        </div>
+        <div class="card ok">
+          <h3>Hedef</h3>
+          <ul>
+            <li>Tüm onay aşamalarını tek platformda yönetmek</li>
+            <li>Her kullanıcının sadece yetkili işlemleri yapmasını sağlamak</li>
+            <li>Her değişikliği kayıt altına almak (log)</li>
+            <li>Yayımlanan bülteni yapılandırılmış HTML olarak arşivlemek</li>
+            <li>Kurumun hiyerarşisini (Başkan → KBY → DB → DBY) dijital ortamda modellemek</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card warn">
+        <h3>Kapsam Dışı (Bu Prototip)</h3>
+        <p>Gerçek çok-kullanıcılı backend · PDF parse/import · E-posta bildirimleri · Doküman yükleme altyapısı — bunlar sonraki fazda ele alınacak.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 3 — MİMARİ ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="2">
+    <div class="slide-header">
+      <span class="slide-num">03</span>
+      <h2>Teknik Mimari</h2>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-3" style="margin-bottom:16px">
+        <div class="card accent">
+          <h3>Saf Tarayıcı SPA</h3>
+          <ul>
+            <li>HTML + CSS + Vanilla JS</li>
+            <li>Sıfır bağımlılık, sıfır derleme adımı</li>
+            <li>Tek dosya mantığı: <code>js/app.js</code></li>
+            <li>Tüm render IIFE içinde, global kirlilik yok</li>
+          </ul>
+        </div>
+        <div class="card accent">
+          <h3>Veri Katmanı</h3>
+          <ul>
+            <li><code>localStorage</code> — <code>spk_haftalik_bulten_v2</code> anahtarı</li>
+            <li><code>Store.save / Store.load</code> sarmalayıcıları</li>
+            <li>Her state değişiminde <code>persist()</code> → <code>render()</code></li>
+            <li>Göç mantığı: <code>migrateState()</code></li>
+          </ul>
+        </div>
+        <div class="card accent">
+          <h3>Render Döngüsü</h3>
+          <ul>
+            <li>Tam yeniden render (innerHTML tabanlı)</li>
+            <li>Event delegation: tek <code>click</code> / <code>change</code> dinleyicisi</li>
+            <li>Sekme bazlı yönlendirme: <code>activeView</code> state'i</li>
+            <li>Kullanıcı simülasyonu: dropdown ile rol geçişi</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="background:#1e293b;border-color:#334155">
+        <h3 style="color:#93c5fd">Dosya Yapısı</h3>
+        <div class="tree" style="margin-top:8px">
+<span class="key">haftalik_bulten/</span>
+├── <span class="key">index.html</span>          <span class="cmt"># Uygulama kabuğu (6 sekme)</span>
+├── <span class="key">css/app.css</span>         <span class="cmt"># Tüm stiller (~800 satır)</span>
+├── <span class="key">js/app.js</span>           <span class="cmt"># Tüm uygulama mantığı (~3 500 satır)</span>
+└── <span class="key">spkbulten/</span>          <span class="cmt"># Arşiv PDF'leri (referans)</span>
+    ├── 2025/
+    └── 2026/
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 4 — ROLLER ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="3">
+    <div class="slide-header">
+      <span class="slide-num">04</span>
+      <h2>Kullanıcı Rolleri &amp; Hiyerarşi</h2>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-2">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="role-badge">
+            <span class="code">KB</span>
+            <div><div class="name">Kurul Başkanı</div><div class="desc">Son onay · bülten yayımlar</div></div>
+          </div>
+          <div class="role-badge">
+            <span class="code">KÖB</span>
+            <div><div class="name">Kurul Özel Bürosu</div><div class="desc">Her kayda yorum/öneri ekler; paket kontrolü yapar</div></div>
+          </div>
+          <div class="role-badge">
+            <span class="code">KBY</span>
+            <div><div class="name">Kurul Başkan Yardımcısı</div><div class="desc">4 KBY; bölümleri onaylar (x4 slot)</div></div>
+          </div>
+          <div class="role-badge">
+            <span class="code">DB</span>
+            <div><div class="name">Daire Başkanı</div><div class="desc">16 DB; kendi dairesini onaylar</div></div>
+          </div>
+          <div class="role-badge">
+            <span class="code">DBY</span>
+            <div><div class="name">Daire Başkan Yardımcısı</div><div class="desc">İçerik girer, DB'ye sunar</div></div>
+          </div>
+          <div class="role-badge">
+            <span class="code">ADM</span>
+            <div><div class="name">Admin</div><div class="desc">Tüm işlemlere tam erişim</div></div>
+          </div>
+        </div>
+        <div class="card" style="font-size:13px;line-height:2">
+          <h3>Hiyerarşi</h3>
+          <div style="font-family:monospace;font-size:13px;color:var(--navy);line-height:2.2">
+            <div style="color:var(--blue);font-weight:700">KB (Başkan)</div>
+            <div style="padding-left:20px">└── <span style="color:var(--ok);font-weight:600">KÖB</span> — Paket inceleme</div>
+            <div style="padding-left:20px">└── <span style="font-weight:600">KBY ×4</span> — Bölüm onayı</div>
+            <div style="padding-left:40px">└── <span style="font-weight:600">DB ×16</span> — Daire onayı</div>
+            <div style="padding-left:60px">└── <span style="font-weight:600">DBY ×16</span> — İçerik girişi</div>
+          </div>
+          <hr style="margin:12px 0;border-color:var(--border)">
+          <p style="color:var(--muted)">Hukuk İşleri Dairesi doğrudan Başkana bağlıdır (KBY zinciri dışı).</p>
+          <p style="color:var(--muted);margin-top:6px">Her bülten yayımlanırken organizasyon anlık görüntüsü (snapshot) alınır.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 5 — İŞ AKIŞI ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="4">
+    <div class="slide-header">
+      <span class="slide-num">05</span>
+      <h2>Onay İş Akışı — Bölüm Seviyesi</h2>
+    </div>
+    <div class="slide-body">
+      <div class="flow" style="margin-bottom:20px">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-label">Daire<br>Hazırlığı</div>
+          <div class="step-role">DBY</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-label">DBY<br>Kontrolü</div>
+          <div class="step-role">DBY</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-label">DB<br>Onayı</div>
+          <div class="step-role">DB</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-label">KBY<br>Onayı</div>
+          <div class="step-role">KBY</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step" style="border-left:3px solid var(--ok)">
+          <div class="step-num" style="background:var(--ok)">5</div>
+          <div class="step-label">KBY<br>Onaylandı</div>
+          <div class="step-role">KBY</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step">
+          <div class="step-num">6</div>
+          <div class="step-label">KÖB<br>Hazır</div>
+          <div class="step-role">Sistem</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step">
+          <div class="step-num">7</div>
+          <div class="step-label">Başkan<br>Onayı</div>
+          <div class="step-role">KB</div>
+        </div>
+        <div class="flow-arrow">›</div>
+        <div class="flow-step" style="border-left:3px solid var(--blue)">
+          <div class="step-num" style="background:var(--blue)">8</div>
+          <div class="step-label">Yayımlandı</div>
+          <div class="step-role">KB</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Kayıt (Entry) Durumları</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <span class="status-pill draft">Taslak</span>
+            <span class="status-pill review">Onay Bekliyor</span>
+            <span class="status-pill approved">Onaylandı</span>
+            <span class="status-pill review">İade Edildi</span>
+          </div>
+          <p style="margin-top:12px">Her daire bölümü birden fazla kayıt içerebilir. Her kayıt ayrı onaylanır. KÖB yorum/önerisi kayıt bazında tutulur.</p>
+        </div>
+        <div class="card">
+          <h3>Özel Durumlar</h3>
+          <ul>
+            <li>Sadece tablo içeren kayıtlara sıra numarası verilmez</li>
+            <li>"Bu hafta veri yok" seçeneği (NO_CONTENT) tüm akışı atlar</li>
+            <li>İade sebebi zorunlu metin olarak loglanır</li>
+            <li>Onay geri alınabilir (REVOKE) — log kaydıyla</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 6 — EKRANLAR ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="5">
+    <div class="slide-header">
+      <span class="slide-num">06</span>
+      <h2>Uygulama Ekranları</h2>
+    </div>
+    <div class="slide-body">
+      <div class="tab-list">
+        <div class="tab-item">
+          <div class="tab-icon">📊</div>
+          <div class="tab-info">
+            <h4>Pano (Dashboard)</h4>
+            <p>Aktif kullanıcının bekleyen işlemleri, son bültenin özet durumu, hızlı geçiş linkleri.</p>
+          </div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">🏛️</div>
+          <div class="tab-info">
+            <h4>Organizasyon</h4>
+            <p>SPK hiyerarşi kartları (KB → KÖB → KBY → DB zinciri), 16 dairenin sürükle-bırak sıralaması, Daire Bağlantıları tablosu.</p>
+          </div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">📰</div>
+          <div class="tab-info">
+            <h4>Bültenler</h4>
+            <p>Yıl/hafta bazlı bülten listesi, yeni bülten oluşturma, durum özeti, bütünleşik ön izleme (önizleme konumlarıyla), bülten gönderme.</p>
+          </div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">✏️</div>
+          <div class="tab-info">
+            <h4>Çalışma (Workspace)</h4>
+            <p>Bölüm ve kayıt düzenleme, Word/Excel tablo yapıştırma, kayıt bazlı KÖB yorum paneli, onay/iade butonları, işlem geçmişi.</p>
+          </div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">📁</div>
+          <div class="tab-info">
+            <h4>Arşiv</h4>
+            <p>Yayımlanmış bültenlerin HTML snapshot arşivi, organizasyon anlık görüntüsü, tam metin görüntüleme.</p>
+          </div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">📋</div>
+          <div class="tab-info">
+            <h4>İşlem Kayıtları (Logs)</h4>
+            <p>Tüm sistem olaylarının kronolojik log listesi; bülten, bölüm ve kayıt bazında filtreleme.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 7 — BÜLTEN YAPISI ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="6">
+    <div class="slide-header">
+      <span class="slide-num">07</span>
+      <h2>Bülten Başlık Grubu Şablonu — Bültenler Sayfası</h2>
+    </div>
+    <div class="slide-body" style="padding-top:20px">
+      <div class="grid grid-2" style="gap:20px">
+
+        <!-- Sol: heading-reference birebir kopyası — tam başlıklar BULLETIN_HEADING_GROUPS'dan -->
+        <div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Uygulamadaki <em>Başlık Grubu Referansı</em> — 8 ana grup (A–H), 58 alt grup. Tıklayarak genişletin.</p>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px">
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">A</span> İzahname / İhraç Belgesi Onaylanan Sermaye Piyasası Araçları</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A01</strong> İlk Halka Arzlar</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A02</strong> Halka Açık Ortaklıkların Pay İhraçları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A03</strong> Diğer Ortaklıkların Pay İhraçları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A04</strong> Borçlanma Araçları İhracı</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A05</strong> Diğer Sermaye Piyasası Araçları İhracı</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>A06</strong> Emeklilik Yatırım Fonu Payları İhracı</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">B</span> Yeni Faaliyet İzinleri</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B01</strong> Yetki Belgesi Alınması</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B02</strong> Yatırım Kuruluşlarının Yetkilendirilmesi</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B03</strong> Yatırım Fonu Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B04</strong> Emeklilik Yatırım Fonu Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B05</strong> Borsa Yatırım Fonu Kuruluşu ve Halka Arzları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B06</strong> Girişim Sermayesi Yatırım Fonu Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B07</strong> Gayrimenkul Yatırım Fonu Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B08</strong> Bağımsız Denetim Kuruluşlarının Yetkilendirilmesi</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B09</strong> Değerleme Şirketlerinin Yetkilendirilmesi</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B10</strong> Derecelendirme Kuruluşlarının Yetkilendirilmesi</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B11</strong> Gayrimenkul Dışı Varlık Değerleme Yetkili Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B12</strong> Makine ve Ekipman Değerleme Yetkili Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B13</strong> Varlık Kiralama Şirketi Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B14</strong> Kripto Varlık Hizmet Sağlayıcı Kuruluşu</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>B15</strong> Diğer Faaliyet İzinleri</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">C</span> Suç Duyurusu, İdari Para Cezası ile Diğer Yaptırım ve Tedbirler</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>C01</strong> Suç Duyuruları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>C02</strong> İdari Para Cezaları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>C03</strong> İşlem Yasakları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>C04</strong> Lisans ve Yetki Belgesi İptalleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>C05</strong> Diğer Yaptırım ve Tedbirler</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">D</span> Sermaye Piyasası Kurumlarının Diğer Başvuru Sonuçları</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D01</strong> Aracı Kurum Kuruluşu</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D02</strong> Portföy Yönetim Şirketi Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D03</strong> Emeklilik Fonları Dönüşüm / İçtüzük / İzahname Değişikliği</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D04</strong> Yatırım Fonlarının Devirleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D05</strong> Yatırım Fonlarının Birleşme İşlemleri ve İzahname Değişikliği</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D06</strong> Yatırım Fonlarının Dönüşüm ve İzahname Değişikliği</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D07</strong> Yatırım Fonlarının Katılma Payı İhracı / İzahname ve İhraç Belgesi Onayı</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D08</strong> Yatırım Fonlarının Tasfiyesi</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D09</strong> İşletme Adı ve Unvan Değişiklikleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D10</strong> Kendi İsteğiyle Listeden Çıkan Değerleme Şirketleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D11</strong> Kendi İsteğiyle Listeden Çıkan Derecelendirme Şirketleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D12</strong> Kendi İsteğiyle Yetkisi İptal Edilen Bağımsız Denetim Kuruluşları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D13</strong> Portföy Yönetim Şirketlerinin Sermaye Artırımları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D14</strong> Yatırım Kuruluşlarının Merkez Dışı Örgüt Açma Başvuruları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D15</strong> Yatırım Kuruluşlarının Sermaye Artırımları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D16</strong> Yatırım Ortaklıkları Sermaye Artırımları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D17</strong> Yetkilendirilen Platformlar Listesinden Çıkarılan Kitle Fonlaması Platformu</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D18</strong> Emeklilik Yatırım Fonu Payları İhracı</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>D19</strong> Diğer Başvurular</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">E</span> Halka Açık Ortaklıkların Diğer Başvuru Sonuçları</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E01</strong> Halka Açık Şirket Sermaye Artırım ve Azaltımları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E02</strong> Halka Açık Şirket Esas Sözleşme Değişiklikleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E03</strong> Kayıtlı Sermaye Sistemine Geçişler</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E04</strong> Halka Açık Şirket Kurul Kaydından Çıkış İşlemleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E05</strong> Halka Açık Şirket Pay Alım Teklifleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>E06</strong> Halka Açık Şirket Birleşme ve Bölünme İşlemleri</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">F</span> Sermaye Piyasası Kurumlarının Ortaklık Yapısı Değişiklikleri</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>F01</strong> Aracı Kurumların Ortaklık Yapısı Değişiklikleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>F02</strong> Portföy Yönetim Şirketlerinin Ortaklık Yapısı Değişiklikleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>F03</strong> Yatırım Ortaklıkları Ortaklık Yapısı Değişiklikleri</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>F04</strong> Kitle Fonlama Platformları Ortaklık Yapısı Değişiklikleri</span>
+              </div>
+            </details>
+
+            <details style="border-bottom:1px solid var(--border)">
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">G</span> Duyuru ve İlke Kararları</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>G01</strong> İlke Kararları</span>
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>G02</strong> Duyurular</span>
+              </div>
+            </details>
+
+            <details>
+              <summary style="padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600"><span class="hg-code" style="font-size:12px">H</span> Diğer Özel Durumlar</summary>
+              <div style="padding:6px 12px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#f8fafc">
+                <span style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px"><strong>H01</strong> Borsada İşlem Görmeyen Ortaklıkların Özel Durum Açıklamaları</span>
+              </div>
+            </details>
+
+          </div>
+        </div>
+
+        <!-- Sağ: Numara sistemi + kurallar -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <h3>Ön İzlemede Numara Sistemi</h3>
+            <div style="font-family:monospace;font-size:13px;line-height:2.2;color:var(--navy);margin-top:8px">
+              <div><strong style="color:var(--blue)">I.</strong> &nbsp;A — İzahname / İhraç Belgesi…</div>
+              <div style="padding-left:18px"><strong>a)</strong> A01 — İlk Halka Arzlar</div>
+              <div style="padding-left:36px">1. Kayıt metni</div>
+              <div style="padding-left:36px">2. Kayıt metni</div>
+              <div style="padding-left:18px"><strong>b)</strong> A02 — Pay İhraçları</div>
+              <div style="padding-left:36px">1. Kayıt metni</div>
+              <div><strong style="color:var(--blue)">II.</strong> &nbsp;B — Yeni Faaliyet İzinleri</div>
+              <div style="padding-left:18px"><strong>a)</strong> B01 — Yetki Belgesi</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Numaralama Kuralları</h3>
+            <ul style="color:var(--muted);font-size:13px;line-height:1.8;padding-left:18px">
+              <li>Ana gruplar Romen rakamı (I, II, III…)</li>
+              <li>Alt gruplar küçük harf (a, b, c…)</li>
+              <li>Kayıtlar rakam (1, 2, 3…)</li>
+              <li>Tek kayıt olsa da numara verilir</li>
+              <li>Sadece tablo olan kayıt numarasız</li>
+              <li>Alt grup görüntü kodu pozisyona göre üretilir — depolanan kod değişmez</li>
+              <li>Gruplar ve alt gruplar sürükle-bırak ile yeniden sıralanabilir</li>
+            </ul>
+          </div>
+          <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+            <h3 style="color:var(--ok)">Toplam</h3>
+            <p style="font-size:22px;font-weight:700;color:var(--navy);margin-top:6px">8 ana grup &nbsp;·&nbsp; 58 alt grup</p>
+            <p style="font-size:12px;color:var(--muted);margin-top:4px">A(6) + B(15) + C(5) + D(19) + E(6) + F(4) + G(2) + H(1)</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 8 — ÖZELLİKLER ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="7">
+    <div class="slide-header">
+      <span class="slide-num">08</span>
+      <h2>Temel Özellikler</h2>
+    </div>
+    <div class="slide-body">
+      <div class="feat-grid">
+        <div class="feat">
+          <div class="feat-icon">📊</div>
+          <div class="feat-text">
+            <h4>Esnek Tablo Girişi</h4>
+            <p>Word/Excel yapıştırma (tab ayrımlı), pipe ayrımlı ve tek kolonlu format. İlk satır otomatik başlık. Sayısal hücreler ortalanır.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🗂️</div>
+          <div class="feat-text">
+            <h4>Sürükle-Bırak Sıralama</h4>
+            <p>Ana başlık grupları, alt gruplar ve departmanlar (hiyerarşi kartı + tablo satırı) sürükle-bırak ile yeniden sıralanabilir.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">💬</div>
+          <div class="feat-text">
+            <h4>Kayıt Bazlı KÖB Yorumları</h4>
+            <p>Her kayıt için ayrı KÖB yorum/öneri paneli. Var/Yok rozeti. KÖB dışı kullanıcılar salt-okunur görür.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔒</div>
+          <div class="feat-text">
+            <h4>Rol Bazlı Erişim Kontrolü</h4>
+            <p>Her buton ve alan aktif kullanıcının rolüne göre aktif/pasif. Simüle çoklu-kullanıcı dropdown ile test edilebilir.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📜</div>
+          <div class="feat-text">
+            <h4>Kayıt Bazlı İşlem Geçmişi</h4>
+            <p>Her log kaydı <code>entryId</code> taşır. Bölüm düzenleyicide yalnızca ilgili kaydın logları gösterilir.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🏢</div>
+          <div class="feat-text">
+            <h4>Organizasyon Anlık Görüntüsü</h4>
+            <p>Bülten yayımlanırken tüm organizasyon yapısı (KBY atamaları, daire bağlantıları) snapshot olarak arşivlenir.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔄</div>
+          <div class="feat-text">
+            <h4>State Göç Sistemi</h4>
+            <p><code>migrateState()</code> her başlatmada çalışır; yeni daireler, kullanıcılar ve alanlar otomatik eklenir, mevcut veri korunur.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📰</div>
+          <div class="feat-text">
+            <h4>Bütünleşik Ön İzleme</h4>
+            <p>Tüm dairelerin içeriği hiyerarşik numaralandırmayla (I, a), 1.) tek sayfada birleştirilir. Başlık grupları sol hizalı H2 olarak.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 9 — VERİ MODELİ ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="8">
+    <div class="slide-header">
+      <span class="slide-num">09</span>
+      <h2>Veri Modeli (State Yapısı)</h2>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-2">
+        <div class="tree">
+<span class="key">state</span> &#123;
+  <span class="key">bulletins</span>[]         <span class="cmt">// Haftalık bülten kayıtları</span>
+    <span class="key">.id</span>              <span class="type">string</span>
+    <span class="key">.year</span>            <span class="type">number</span>
+    <span class="key">.weekNumber</span>      <span class="type">number</span>
+    <span class="key">.status</span>          <span class="type">BulletinStatus</span>
+    <span class="key">.organizationSnapshotId</span>
+
+  <span class="key">sections</span>[]         <span class="cmt">// Daire bölümleri</span>
+    <span class="key">.bulletinId</span>      <span class="type">→ bulletin</span>
+    <span class="key">.departmentId</span>    <span class="type">→ department</span>
+    <span class="key">.headingGroupCode</span> <span class="type">A00–G00</span>
+    <span class="key">.status</span>          <span class="type">SectionStatus</span>
+    <span class="key">.entries</span>[]       <span class="cmt">// Kayıtlar</span>
+      <span class="key">.contentHtml</span>   <span class="type">string</span>
+      <span class="key">.structuredTables</span>[]
+      <span class="key">.approvalStatus</span> <span class="type">DRAFT|PENDING|…</span>
+      <span class="key">.kobSuggestions</span>[]
+        </div>
+        <div class="tree">
+  <span class="key">departments</span>[]      <span class="cmt">// 16 SPK dairesi</span>
+    <span class="key">.reportsToType</span>   <span class="type">KBY | KB</span>
+    <span class="key">.displayOrder</span>    <span class="type">number</span>
+
+  <span class="key">users</span>[]           <span class="cmt">// Tüm kullanıcılar</span>
+    <span class="key">.roleCode</span>        <span class="type">KB|KOB|KBY|DB|DBY|ADMIN</span>
+    <span class="key">.departmentId</span>    <span class="type">→ department</span>
+
+  <span class="key">headingGroups</span>[]  <span class="cmt">// Özelleştirilmiş başlık şablonu</span>
+    <span class="key">.code</span>           <span class="type">A00–G00</span>
+    <span class="key">.children</span>[]     <span class="type">{ code, title }</span>
+
+  <span class="key">logs</span>[]            <span class="cmt">// Tüm işlem kayıtları</span>
+    <span class="key">.entryId</span>        <span class="type">string | null</span>
+    <span class="key">.actionType</span>     <span class="type">string</span>
+
+  <span class="key">archives</span>[]       <span class="cmt">// Yayımlanan bülten snapshotları</span>
+  <span class="key">approvals</span>[]      <span class="cmt">// Onay kayıtları</span>
+  <span class="key">organizationSnapshots</span>[]
+&#125;
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 10 — YOL HARİTASI ═══════════════════════════ -->
+  <section class="slide slide-content" data-index="9">
+    <div class="slide-header">
+      <span class="slide-num">10</span>
+      <h2>Sonraki Adımlar — Geliştirme Yol Haritası</h2>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-3">
+        <div class="card ok">
+          <h3>Faz 1 — Tamamlandı ✓</h3>
+          <ul>
+            <li>Çok rollü onay akışı</li>
+            <li>Bölüm ve kayıt yönetimi</li>
+            <li>Başlık grubu şablonu</li>
+            <li>Sürükle-bırak sıralama</li>
+            <li>KÖB yorum sistemi</li>
+            <li>Kayıt bazlı log</li>
+            <li>Word/Excel tablo girişi</li>
+            <li>Arşiv ve snapshot</li>
+            <li>Departman sıralama</li>
+            <li>Sayısal hücre hizalama</li>
+          </ul>
+        </div>
+        <div class="card warn">
+          <h3>Faz 2 — Backend Altyapısı</h3>
+          <ul>
+            <li>REST API (Node.js / .NET)</li>
+            <li>Gerçek kimlik doğrulama (OAuth/LDAP)</li>
+            <li>Çok kullanıcılı eş zamanlı düzenleme</li>
+            <li>E-posta / bildirim entegrasyonu</li>
+            <li>Dosya yükleme (ek belgeler)</li>
+            <li>Veritabanı migrasyonu (PostgreSQL)</li>
+          </ul>
+        </div>
+        <div class="card accent">
+          <h3>Faz 3 — İleri Özellikler</h3>
+          <ul>
+            <li>PDF çıktı üretimi (tarayıcı print/Puppeteer)</li>
+            <li>Bülten şablonları ve yeniden kullanım</li>
+            <li>Raporlama ve istatistik panosu</li>
+            <li>Mobil uyumlu responsive tasarım</li>
+            <li>Arama ve filtreleme (arşivde tam metin)</li>
+            <li>Denetim raporları (Audit Trail PDF)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Prototipten Üretime Geçiş Notları</h3>
+        <p style="color:var(--muted)">LocalStorage → API: <code>Store.save/load</code> metodları değiştirilerek tüm uygulama mantığı korunabilir. Render döngüsü aynı kalır; sadece kalıcılık katmanı güncellenir. State göç sistemi veritabanı migrasyon script'lerine dönüştürülür.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SLIDE 11 — KAPANIŞ ═══════════════════════════ -->
+  <section class="slide slide-cover" data-index="10">
+    <div style="max-width:640px">
+      <div style="font-size:64px;margin-bottom:24px">🎯</div>
+      <h1 style="font-size:34px">Teşekkürler</h1>
+      <p class="subtitle">SPK Haftalık Bülten Yönetim Sistemi Prototipi</p>
+      <div class="badge-row">
+        <span class="chip">16 Daire</span>
+        <span class="chip">7 Rol · 9 Onay Adımı</span>
+        <span class="chip">8 Ana Başlık (A–H) · 58 Alt Grup</span>
+        <span class="chip">Saf JS · Sıfır Bağımlılık</span>
+      </div>
+      <p class="meta" style="margin-top:40px">
+        Uygulamayı açmak için: &nbsp;<code style="background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:6px">index.html</code>
+      </p>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- ── Nav ── -->
+<div id="nav">
+  <button id="btn-prev" disabled>← Önceki</button>
+  <span id="slide-counter">1 / 11</span>
+  <button id="btn-next">Sonraki →</button>
+</div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('slide-counter');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+
+  function goTo(index) {
+    if (index < 0 || index >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => { slides[current].classList.remove('exit'); }, 380);
+    current = index;
+    slides[current].classList.add('active');
+    counter.textContent = `${current + 1} / ${total}`;
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === total - 1;
+    progress.style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  btnPrev.addEventListener('click', () => goTo(current - 1));
+  btnNext.addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') goTo(current + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(current - 1);
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  // Touch swipe
+  let touchX = null;
+  document.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  goTo(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Mizan{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Mizan</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-table me-2 text-primary"></i>Mizan</h4>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Hesap Kodu</th>
+          <th>Hesap Adı</th>
+          <th>Tip</th>
+          <th class="text-end">Toplam Borç</th>
+          <th class="text-end">Toplam Alacak</th>
+          <th class="text-end">Borç Bakiye</th>
+          <th class="text-end">Alacak Bakiye</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set borc_b = [row.toplam_borc - row.toplam_alacak, 0] | max %}
+        {% set alacak_b = [row.toplam_alacak - row.toplam_borc, 0] | max %}
+        <tr>
+          <td class="fw-semibold">{{ row.hesap_kodu }}</td>
+          <td>{{ row.ad }}</td>
+          <td><span class="badge bg-secondary">{{ row.tip }}</span></td>
+          <td class="text-end">{{ row.toplam_borc | float | format_para }}</td>
+          <td class="text-end">{{ row.toplam_alacak | float | format_para }}</td>
+          <td class="text-end {% if borc_b > 0 %}fw-semibold{% endif %}">{{ borc_b | format_para if borc_b > 0 else '' }}</td>
+          <td class="text-end {% if alacak_b > 0 %}fw-semibold{% endif %}">{{ alacak_b | format_para if alacak_b > 0 else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Yevmiye kaydı yok.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if rows %}
+      {% set top_borc = rows | sum(attribute='toplam_borc') | float %}
+      {% set top_alacak = rows | sum(attribute='toplam_alacak') | float %}
+      <tfoot class="table-light">
+        <tr>
+          <td colspan="3" class="fw-bold text-end">TOPLAM:</td>
+          <td class="text-end fw-bold">{{ top_borc | format_para }}</td>
+          <td class="text-end fw-bold">{{ top_alacak | format_para }}</td>
+          <td colspan="2" class="text-center {% if (top_borc - top_alacak) | abs < 0.01 %}text-success{% else %}text-danger{% endif %}">
+            {% if (top_borc - top_alacak) | abs < 0.01 %}
+              <i class="bi bi-check-circle me-1"></i>Eşit (Denklik sağlandı)
+            {% else %}
+              <i class="bi bi-exclamation-triangle me-1"></i>Fark: {{ (top_borc - top_alacak) | abs | format_para }}
+            {% endif %}
+          </td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

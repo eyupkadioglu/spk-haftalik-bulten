@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Ayarlar{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Ayarlar</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-gear me-2 text-primary"></i>Firma Ayarları</h4>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="row g-3">
+    <!-- Firma Bilgileri -->
+    <div class="col-md-8">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold small border-bottom">
+          <i class="bi bi-building me-1"></i>Firma Bilgileri
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Firma Adı</label>
+              <input type="text" name="firma_adi" class="form-control" value="{{ ayar.firma_adi or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Telefon</label>
+              <input type="text" name="telefon" class="form-control" value="{{ ayar.telefon or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">E-posta</label>
+              <input type="email" name="email" class="form-control" value="{{ ayar.email or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Web Sitesi</label>
+              <input type="text" name="website" class="form-control" value="{{ ayar.website or '' }}" placeholder="www.sirketim.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vergi No (VKN)</label>
+              <input type="text" name="vergi_no" class="form-control" value="{{ ayar.vergi_no or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vergi Dairesi</label>
+              <input type="text" name="vergi_dairesi" class="form-control" value="{{ ayar.vergi_dairesi or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Adres</label>
+              <textarea name="adres" class="form-control" rows="3">{{ ayar.adres or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Belge Notları -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold small border-bottom">
+          <i class="bi bi-file-text me-1"></i>Belge Notları
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Teklif Alt Notu <span class="text-muted small">(tekliflerin altında görünür)</span></label>
+              <textarea name="teklif_notu" class="form-control" rows="2">{{ ayar.teklif_notu or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Fatura Alt Notu <span class="text-muted small">(faturaların altında görünür)</span></label>
+              <textarea name="fatura_notu" class="form-control" rows="2">{{ ayar.fatura_notu or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo + Para Birimi -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold small border-bottom">
+          <i class="bi bi-image me-1"></i>Firma Logosu
+        </div>
+        <div class="card-body text-center">
+          {% if ayar.logo %}
+          <img src="{{ url_for('static', filename=ayar.logo) }}"
+               alt="Logo" class="img-thumbnail mb-2"
+               style="max-height:120px;max-width:100%;">
+          <div class="form-check d-flex justify-content-center mb-2">
+            <input class="form-check-input me-2" type="checkbox" name="logo_sil" value="1" id="logoSil">
+            <label class="form-check-label text-danger small" for="logoSil">Logoyu sil</label>
+          </div>
+          {% else %}
+          <div class="text-muted small mb-2">Henüz logo yüklenmemiş</div>
+          {% endif %}
+          <input type="file" name="logo" class="form-control form-control-sm" accept="image/*" id="logoInput">
+          <div class="form-text">JPG, PNG, WebP — max 5 MB</div>
+          <div id="logoOnizleme" class="mt-2" style="display:none">
+            <img id="logoOnizlemeImg" src="#" alt="Önizleme"
+                 class="img-thumbnail" style="max-height:120px;max-width:100%;">
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold small border-bottom">
+          <i class="bi bi-currency-exchange me-1"></i>Varsayılan Para Birimi
+        </div>
+        <div class="card-body">
+          {% for pb, ad in [('TRY','₺ Türk Lirası'),('USD','$ ABD Doları'),('EUR','€ Euro')] %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="varsayilan_para_birimi"
+                   value="{{ pb }}" id="pb{{ pb }}"
+                   {{ 'checked' if (ayar.varsayilan_para_birimi or 'TRY') == pb }}>
+            <label class="form-check-label" for="pb{{ pb }}">{{ ad }}</label>
+          </div>
+          {% endfor %}
+          <div class="form-text mt-1">Yeni teklif ve faturalarda varsayılan olarak seçilir.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>Kaydet
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('logoInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) { document.getElementById('logoOnizleme').style.display = 'none'; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('logoOnizlemeImg').src = e.target.result;
+    document.getElementById('logoOnizleme').style.display = '';
+  };
+  reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,534 @@
+{% extends 'base.html' %}
+{% block title %}Stok Transfer{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('stok.index') }}">Stok</a></li>
+<li class="breadcrumb-item active">Transfer</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Stok Transfer İşlemleri</h4>
+</div>
+
+<ul class="nav nav-tabs mb-0" id="transferTabs">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-virman" type="button">
+      <i class="bi bi-arrow-left-right me-1"></i>Virman
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-parcalama" type="button">
+      <i class="bi bi-scissors me-1"></i>Parçalama
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-birlestirme" type="button">
+      <i class="bi bi-union me-1"></i>Birleştirme
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content card border-0 shadow-sm p-4" style="border-radius:0 0 .5rem .5rem">
+
+  <!-- ─── VİRMAN ─── -->
+  <div class="tab-pane fade show active" id="tab-virman">
+    <p class="text-muted small mb-4">Bir stoktan diğerine miktar ve tutar aktarın. Kaynak çıkış tutarı = Hedef giriş tutarı olmalıdır.</p>
+    <form method="POST" action="{{ url_for('stok.transfer') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tip" value="virman">
+
+      <div class="row g-4 align-items-start">
+        <!-- Kaynak -->
+        <div class="col-md-5">
+          <div class="card border-danger border-opacity-50 h-100">
+            <div class="card-header bg-danger bg-opacity-10 text-danger fw-semibold small">
+              <i class="bi bi-box-arrow-right me-1"></i>Kaynak (Çıkış)
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Stok</label>
+                <input type="text" id="vKaynakAra" class="form-control form-control-sm" placeholder="Stok adı veya kodu ara..." autocomplete="off">
+                <input type="hidden" name="kaynak_id" id="vKaynakId">
+                <div id="vKaynakSonuc" class="list-group mt-1 position-absolute z-3" style="min-width:300px;display:none"></div>
+                <div id="vKaynakSecili" class="mt-2 text-primary small fw-semibold"></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small">Çıkış Miktarı</label>
+                  <input type="number" step="0.001" min="0.001" name="kaynak_miktar" id="vKaynakMiktar"
+                         class="form-control form-control-sm" placeholder="0" oninput="vHesapla()">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small">Birim Fiyat</label>
+                  <input type="number" step="0.0001" min="0" name="kaynak_fiyat" id="vKaynakFiyat"
+                         class="form-control form-control-sm" placeholder="0" oninput="vHesapla()">
+                </div>
+              </div>
+              <div class="mt-2 p-2 bg-light rounded small text-end">
+                Toplam: <strong id="vKaynakToplam" class="text-danger">0,00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ok -->
+        <div class="col-md-2 text-center pt-5">
+          <i class="bi bi-arrow-right fs-2 text-muted"></i>
+          <div id="vDenge" class="mt-2 small fw-semibold"></div>
+        </div>
+
+        <!-- Hedef -->
+        <div class="col-md-5">
+          <div class="card border-success border-opacity-50 h-100">
+            <div class="card-header bg-success bg-opacity-10 text-success fw-semibold small">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Hedef (Giriş)
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Stok</label>
+                <input type="text" id="vHedefAra" class="form-control form-control-sm" placeholder="Stok adı veya kodu ara..." autocomplete="off">
+                <input type="hidden" name="hedef_id" id="vHedefId">
+                <div id="vHedefSonuc" class="list-group mt-1 position-absolute z-3" style="min-width:300px;display:none"></div>
+                <div id="vHedefSecili" class="mt-2 text-success small fw-semibold"></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small">Giriş Miktarı</label>
+                  <input type="number" step="0.001" min="0.001" name="hedef_miktar" id="vHedefMiktar"
+                         class="form-control form-control-sm" placeholder="0" oninput="vHesapla()">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small">Birim Fiyat</label>
+                  <input type="number" step="0.0001" min="0" name="hedef_fiyat" id="vHedefFiyat"
+                         class="form-control form-control-sm" placeholder="0" oninput="vHesapla()">
+                </div>
+              </div>
+              <div class="mt-2 p-2 bg-light rounded small text-end">
+                Toplam: <strong id="vHedefToplam" class="text-success">0,00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label small">Açıklama</label>
+        <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="İsteğe bağlı açıklama">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm mt-3" id="vSubmit">
+        <i class="bi bi-check-lg me-1"></i>Virman Yap
+      </button>
+    </form>
+  </div>
+
+  <!-- ─── PARÇALAMA ─── -->
+  <div class="tab-pane fade" id="tab-parcalama">
+    <p class="text-muted small mb-4">Tek bir stoktan alınan miktarı birden fazla stoğa dağıtın (birleştirmenin tersi: d = a + b + c).</p>
+    <form method="POST" action="{{ url_for('stok.transfer') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tip" value="parcalama">
+
+      <div class="row g-4 align-items-start">
+        <!-- Kaynak (tek) -->
+        <div class="col-md-5">
+          <div class="card border-danger border-opacity-50">
+            <div class="card-header bg-danger bg-opacity-10 text-danger fw-semibold small">
+              <i class="bi bi-box-arrow-right me-1"></i>Kaynak (Çıkış)
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Stok</label>
+                <input type="text" id="pKaynakAra" class="form-control form-control-sm" placeholder="Stok ara..." autocomplete="off">
+                <input type="hidden" name="kaynak_id" id="pKaynakId">
+                <div id="pKaynakSonuc" class="list-group mt-1 position-absolute z-3" style="min-width:300px;display:none"></div>
+                <div id="pKaynakSecili" class="mt-2 text-primary small fw-semibold"></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small">Çıkış Miktarı</label>
+                  <input type="number" step="0.001" min="0.001" name="kaynak_miktar" id="pKaynakMiktar"
+                         class="form-control form-control-sm" placeholder="0" oninput="pHesapla()">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small">Birim Fiyat</label>
+                  <input type="number" step="0.0001" min="0" name="kaynak_fiyat" id="pKaynakFiyat"
+                         class="form-control form-control-sm" placeholder="0" oninput="pHesapla()">
+                </div>
+              </div>
+              <div class="mt-2 p-2 bg-light rounded small">
+                <div class="d-flex justify-content-between">
+                  <span>Kaynak Toplam:</span>
+                  <strong id="pKaynakToplam" class="text-danger">0,00</strong>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                  <span>Dağıtılan:</span>
+                  <strong id="pDagitilan" class="text-success">0,00</strong>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                  <span>Kalan:</span>
+                  <strong id="pKalan" class="text-warning">0,00</strong>
+                </div>
+              </div>
+              <div id="pDenge" class="mt-2 small fw-semibold text-center"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ok -->
+        <div class="col-md-1 text-center pt-5 d-none d-md-block">
+          <i class="bi bi-scissors fs-2 text-muted"></i>
+        </div>
+
+        <!-- Hedefler (çoklu) -->
+        <div class="col-md-6">
+          <div class="card border-success border-opacity-50">
+            <div class="card-header bg-success bg-opacity-10 text-success fw-semibold small d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-box-arrow-in-right me-1"></i>Hedefler (Giriş)</span>
+              <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" onclick="pSatirEkle()">
+                <i class="bi bi-plus-lg"></i> Satır Ekle
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Stok</th>
+                    <th style="width:100px">Miktar</th>
+                    <th style="width:110px">Birim Fiyat</th>
+                    <th style="width:90px" class="text-end">Toplam</th>
+                    <th style="width:36px"></th>
+                  </tr>
+                </thead>
+                <tbody id="pHedefBody"></tbody>
+                <tfoot>
+                  <tr class="table-light">
+                    <td colspan="3" class="text-end fw-semibold small">Hedef Toplam:</td>
+                    <td class="text-end fw-bold text-success" id="pHedefToplam">0,00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label small">Açıklama</label>
+        <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="İsteğe bağlı açıklama">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm mt-3" id="pSubmit">
+        <i class="bi bi-scissors me-1"></i>Parçala
+      </button>
+    </form>
+  </div>
+
+  <!-- ─── BİRLEŞTİRME ─── -->
+  <div class="tab-pane fade" id="tab-birlestirme">
+    <p class="text-muted small mb-4">Birden fazla stoktan alınan miktarları tek bir stoğa birleştirin. Hedef birim fiyatı otomatik hesaplanır.</p>
+    <form method="POST" action="{{ url_for('stok.transfer') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tip" value="birlestirme">
+
+      <div class="row g-4 align-items-start">
+        <!-- Kaynaklar -->
+        <div class="col-md-7">
+          <div class="card border-danger border-opacity-50">
+            <div class="card-header bg-danger bg-opacity-10 text-danger fw-semibold small d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-box-arrow-right me-1"></i>Kaynaklar (Çıkış)</span>
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="bSatirEkle()">
+                <i class="bi bi-plus-lg"></i> Satır Ekle
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0" id="bKaynakTable">
+                <thead class="table-light">
+                  <tr>
+                    <th>Stok</th>
+                    <th style="width:100px">Miktar</th>
+                    <th style="width:110px">Birim Fiyat</th>
+                    <th style="width:100px" class="text-end">Toplam</th>
+                    <th style="width:36px"></th>
+                  </tr>
+                </thead>
+                <tbody id="bKaynakBody">
+                  <!-- JS ile doldurulur -->
+                </tbody>
+                <tfoot>
+                  <tr class="table-light">
+                    <td colspan="3" class="text-end fw-semibold small">Kaynak Toplam:</td>
+                    <td class="text-end fw-bold text-danger" id="bKaynakToplam">0,00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hedef -->
+        <div class="col-md-5">
+          <div class="card border-success border-opacity-50">
+            <div class="card-header bg-success bg-opacity-10 text-success fw-semibold small">
+              <i class="bi bi-union me-1"></i>Hedef (Giriş)
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Stok</label>
+                <input type="text" id="bHedefAra" class="form-control form-control-sm" placeholder="Stok ara..." autocomplete="off">
+                <input type="hidden" name="hedef_id" id="bHedefId">
+                <div id="bHedefSonuc" class="list-group mt-1 position-absolute z-3" style="min-width:300px;display:none"></div>
+                <div id="bHedefSecili" class="mt-2 text-success small fw-semibold"></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small">Giriş Miktarı</label>
+                  <input type="number" step="0.001" min="0.001" name="hedef_miktar" id="bHedefMiktar"
+                         class="form-control form-control-sm" placeholder="0" oninput="bHesapla()">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small">Birim Fiyat <span class="text-muted">(otomatik)</span></label>
+                  <input type="number" step="0.0001" name="hedef_fiyat" id="bHedefFiyat"
+                         class="form-control form-control-sm bg-light" placeholder="—" readonly>
+                </div>
+              </div>
+              <div class="mt-2 p-2 bg-light rounded small text-end">
+                Hedef Toplam: <strong id="bHedefToplam" class="text-success">0,00</strong>
+              </div>
+              <div id="bDenge" class="mt-2 small fw-semibold text-center"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label small">Açıklama</label>
+        <input type="text" name="aciklama" class="form-control form-control-sm" placeholder="İsteğe bağlı açıklama">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm mt-3" id="bSubmit">
+        <i class="bi bi-union me-1"></i>Birleştir
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fmt = v => new Intl.NumberFormat('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(v || 0);
+
+/* ── Stok Arama (genel yardımcı) ── */
+function stokAramaKur(araId, sonucId, idHiddenId, seciliId, onSec) {
+  const ara = document.getElementById(araId);
+  const sonuc = document.getElementById(sonucId);
+  let timer;
+  ara.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 1) { sonuc.style.display = 'none'; return; }
+    timer = setTimeout(() => {
+      fetch(`{{ url_for('stok.api_search') }}?q=${encodeURIComponent(q)}`)
+        .then(r => r.json()).then(data => {
+          sonuc.innerHTML = '';
+          if (!data.length) { sonuc.style.display = 'none'; return; }
+          data.forEach(s => {
+            const a = document.createElement('a');
+            a.className = 'list-group-item list-group-item-action py-1 small';
+            a.href = '#';
+            a.innerHTML = `<strong>${s.stok_kodu}</strong> — ${s.ad} <span class="text-muted">(${fmt(s.alis_fiyati)} ₺, Stok: ${s.stok_miktari ?? '?'})</span>`;
+            a.addEventListener('click', function(e) {
+              e.preventDefault();
+              document.getElementById(idHiddenId).value = s.id;
+              document.getElementById(seciliId).textContent = `${s.stok_kodu} — ${s.ad}`;
+              ara.value = `${s.stok_kodu} — ${s.ad}`;
+              sonuc.style.display = 'none';
+              if (onSec) onSec(s);
+            });
+            sonuc.appendChild(a);
+          });
+          sonuc.style.display = '';
+        });
+    }, 250);
+  });
+  document.addEventListener('click', e => { if (!ara.contains(e.target)) sonuc.style.display = 'none'; });
+}
+
+/* ── VİRMAN ── */
+stokAramaKur('vKaynakAra','vKaynakSonuc','vKaynakId','vKaynakSecili', s => {
+  document.getElementById('vKaynakFiyat').value = s.alis_fiyati;
+  document.getElementById('vKaynakMiktar').value = '';
+  vHesapla();
+});
+stokAramaKur('vHedefAra','vHedefSonuc','vHedefId','vHedefSecili', s => {
+  document.getElementById('vHedefFiyat').value = s.alis_fiyati;
+  document.getElementById('vHedefMiktar').value = '';
+  vHesapla();
+});
+
+function vHesapla() {
+  const km = parseFloat(document.getElementById('vKaynakMiktar').value) || 0;
+  const kf = parseFloat(document.getElementById('vKaynakFiyat').value) || 0;
+  const hm = parseFloat(document.getElementById('vHedefMiktar').value) || 0;
+  const hf = parseFloat(document.getElementById('vHedefFiyat').value) || 0;
+  const kt = km * kf, ht = hm * hf;
+  document.getElementById('vKaynakToplam').textContent = fmt(kt);
+  document.getElementById('vHedefToplam').textContent = fmt(ht);
+  const denge = document.getElementById('vDenge');
+  const esit = Math.abs(kt - ht) <= 0.02;
+  if (kt > 0 || ht > 0) {
+    denge.innerHTML = esit
+      ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Eşit</span>'
+      : '<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Eşit değil</span>';
+  } else { denge.innerHTML = ''; }
+  document.getElementById('vSubmit').disabled = !esit || !kt;
+}
+
+/* ── PARÇALAMA (1 kaynak → N hedef) ── */
+let pSatirSayisi = 0;
+
+stokAramaKur('pKaynakAra','pKaynakSonuc','pKaynakId','pKaynakSecili', s => {
+  document.getElementById('pKaynakFiyat').value = s.alis_fiyati;
+  document.getElementById('pKaynakMiktar').value = '';
+  pHesapla();
+});
+
+function pSatirEkle(stok) {
+  const idx = pSatirSayisi++;
+  const tr = document.createElement('tr');
+  tr.id = `pSatir_${idx}`;
+  tr.innerHTML = `
+    <td>
+      <input type="text" id="pAra_${idx}" class="form-control form-control-sm" placeholder="Stok ara..." autocomplete="off">
+      <input type="hidden" name="hedef_ids" id="pId_${idx}" value="${stok ? stok.id : ''}">
+      <div id="pSonuc_${idx}" class="list-group mt-1 position-absolute z-3" style="min-width:280px;display:none"></div>
+      ${stok ? `<div class="small text-success mt-1">${stok.stok_kodu} — ${stok.ad}</div>` : ''}
+    </td>
+    <td><input type="number" step="0.001" name="hedef_miktarlar" id="pMiktar_${idx}" class="form-control form-control-sm" placeholder="0" oninput="pHesapla()"></td>
+    <td><input type="number" step="0.0001" name="hedef_fiyatlar" id="pFiyat_${idx}" class="form-control form-control-sm" placeholder="0" value="${stok ? stok.alis_fiyati : ''}" oninput="pHesapla()"></td>
+    <td class="text-end small fw-semibold" id="pToplam_${idx}">0,00</td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="pSatirSil(${idx})"><i class="bi bi-x"></i></button></td>
+  `;
+  document.getElementById('pHedefBody').appendChild(tr);
+  if (stok) document.getElementById(`pAra_${idx}`).value = `${stok.stok_kodu} — ${stok.ad}`;
+  stokAramaKur(`pAra_${idx}`, `pSonuc_${idx}`, `pId_${idx}`, `pId_${idx}`, s => {
+    document.getElementById(`pFiyat_${idx}`).value = s.alis_fiyati;
+    pHesapla();
+  });
+}
+
+function pSatirSil(idx) {
+  const tr = document.getElementById(`pSatir_${idx}`);
+  if (tr) tr.remove();
+  pHesapla();
+}
+
+function pHesapla() {
+  const km = parseFloat(document.getElementById('pKaynakMiktar').value) || 0;
+  const kf = parseFloat(document.getElementById('pKaynakFiyat').value) || 0;
+  const kt = km * kf;
+  document.getElementById('pKaynakToplam').textContent = fmt(kt);
+
+  let toplamHedef = 0;
+  document.querySelectorAll('[id^="pMiktar_"]').forEach(mEl => {
+    const idx = mEl.id.split('_')[1];
+    const m = parseFloat(mEl.value) || 0;
+    const f = parseFloat(document.getElementById(`pFiyat_${idx}`)?.value) || 0;
+    const t = m * f;
+    toplamHedef += t;
+    const totEl = document.getElementById(`pToplam_${idx}`);
+    if (totEl) totEl.textContent = fmt(t);
+  });
+
+  document.getElementById('pHedefToplam').textContent = fmt(toplamHedef);
+  const kalan = kt - toplamHedef;
+  document.getElementById('pDagitilan').textContent = fmt(toplamHedef);
+  document.getElementById('pKalan').textContent = fmt(kalan);
+
+  const esit = kt > 0 && Math.abs(kalan) <= 0.02;
+  const denge = document.getElementById('pDenge');
+  if (kt > 0) {
+    denge.innerHTML = esit
+      ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Eşit</span>'
+      : `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Fark: ${fmt(kalan)}</span>`;
+  } else { denge.innerHTML = ''; }
+  document.getElementById('pSubmit').disabled = !esit;
+}
+
+pSatirEkle();
+pSatirEkle();
+
+/* ── BİRLEŞTİRME ── */
+let bSatirSayisi = 0;
+
+function bSatirEkle(stok) {
+  const idx = bSatirSayisi++;
+  const tr = document.createElement('tr');
+  tr.id = `bSatir_${idx}`;
+  tr.innerHTML = `
+    <td>
+      <input type="text" id="bAra_${idx}" class="form-control form-control-sm" placeholder="Stok ara..." autocomplete="off">
+      <input type="hidden" name="kaynak_ids" id="bId_${idx}" value="${stok ? stok.id : ''}">
+      <div id="bSonuc_${idx}" class="list-group mt-1 position-absolute z-3" style="min-width:280px;display:none"></div>
+      ${stok ? `<div class="small text-primary mt-1">${stok.stok_kodu} — ${stok.ad}</div>` : ''}
+    </td>
+    <td><input type="number" step="0.001" name="kaynak_miktarlar" id="bMiktar_${idx}" class="form-control form-control-sm" placeholder="0" oninput="bHesapla()"></td>
+    <td><input type="number" step="0.0001" name="kaynak_fiyatlar" id="bFiyat_${idx}" class="form-control form-control-sm" placeholder="0" value="${stok ? stok.alis_fiyati : ''}" oninput="bHesapla()"></td>
+    <td class="text-end small fw-semibold" id="bToplam_${idx}">0,00</td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="bSatirSil(${idx})"><i class="bi bi-x"></i></button></td>
+  `;
+  document.getElementById('bKaynakBody').appendChild(tr);
+  if (stok) {
+    document.getElementById(`bAra_${idx}`).value = `${stok.stok_kodu} — ${stok.ad}`;
+  }
+  stokAramaKur(`bAra_${idx}`, `bSonuc_${idx}`, `bId_${idx}`, `bId_${idx}`, s => {
+    document.getElementById(`bFiyat_${idx}`).value = s.alis_fiyati;
+    bHesapla();
+  });
+}
+
+function bSatirSil(idx) {
+  const tr = document.getElementById(`bSatir_${idx}`);
+  if (tr) tr.remove();
+  bHesapla();
+}
+
+function bHesapla() {
+  let toplam = 0;
+  document.querySelectorAll('[id^="bMiktar_"]').forEach(mEl => {
+    const idx = mEl.id.split('_')[1];
+    const m = parseFloat(mEl.value) || 0;
+    const f = parseFloat(document.getElementById(`bFiyat_${idx}`)?.value) || 0;
+    const t = m * f;
+    toplam += t;
+    const totEl = document.getElementById(`bToplam_${idx}`);
+    if (totEl) totEl.textContent = fmt(t);
+  });
+  document.getElementById('bKaynakToplam').textContent = fmt(toplam);
+  const hm = parseFloat(document.getElementById('bHedefMiktar').value) || 0;
+  const hf = hm > 0 ? toplam / hm : 0;
+  document.getElementById('bHedefFiyat').value = hm > 0 ? hf.toFixed(4) : '';
+  document.getElementById('bHedefToplam').textContent = fmt(hm * hf);
+  const denge = document.getElementById('bDenge');
+  const ok = toplam > 0 && hm > 0;
+  denge.innerHTML = ok
+    ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Eşit</span>'
+    : '';
+  document.getElementById('bSubmit').disabled = !ok;
+}
+
+stokAramaKur('bHedefAra','bHedefSonuc','bHedefId','bHedefSecili', s => {
+  document.getElementById('bHedefFiyat').value = s.alis_fiyati;
+  bHesapla();
+});
+
+/* Başlangıçta 2 satır ekle */
+bSatirEkle();
+bSatirEkle();
+
+/* Başlangıçta butonları devre dışı bırak */
+document.getElementById('vSubmit').disabled = true;
+document.getElementById('pSubmit').disabled = true;
+document.getElementById('bSubmit').disabled = true;
+</script>
+{% endblock %}

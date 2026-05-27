@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}{{ kasa.ad }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('kasa.index') }}">Kasa</a></li>
+<li class="breadcrumb-item active">{{ kasa.ad }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-2 text-primary"></i>{{ kasa.ad }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('kasa.tahsilat', id=kasa.id) }}" class="btn btn-success btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Tahsilat
+    </a>
+    <a href="{{ url_for('kasa.odeme', id=kasa.id) }}" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-dash-circle me-1"></i>Ödeme
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="text-muted small">Güncel Bakiye</div>
+      <div class="fw-bold fs-4 {% if kasa.bakiye >= 0 %}text-success{% else %}text-danger{% endif %}">
+        {{ kasa.bakiye | format_para }}
+      </div>
+      <div class="text-muted small">{{ kasa.para_birimi }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0 fw-semibold">Hareket Geçmişi</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead><tr><th>Tarih</th><th>Tip</th><th>Açıklama</th><th>Cari</th><th>Fatura</th><th class="text-end">Tutar</th></tr></thead>
+      <tbody>
+        {% for h in hareketler %}
+        <tr>
+          <td>{{ h.tarih | format_tarih }}</td>
+          <td>
+            {% if h.hareket_tipi in ('tahsilat', 'giris') %}
+              <span class="badge bg-success">{{ h.hareket_tipi }}</span>
+            {% elif h.hareket_tipi == 'virman' %}
+              <span class="badge bg-info text-dark">virman</span>
+            {% else %}
+              <span class="badge bg-danger">{{ h.hareket_tipi }}</span>
+            {% endif %}
+          </td>
+          <td>{{ h.aciklama or '—' }}</td>
+          <td>{{ h.cari.unvan if h.cari else '—' }}</td>
+          <td>{{ h.fatura.fatura_no if h.fatura else '—' }}</td>
+          <td class="text-end fw-semibold {% if h.hareket_tipi in ('tahsilat','giris') %}text-success{% elif h.hareket_tipi not in ('virman',) %}text-danger{% endif %}">
+            {{ h.tutar | format_para }}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-3">Hareket yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

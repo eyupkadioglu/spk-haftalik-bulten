@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Stok Hareketleri{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('stok.index') }}">Stok</a></li>
+<li class="breadcrumb-item active">Hareketler</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Stok Hareketleri</h4>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 small">
+      <thead><tr><th>Tarih</th><th>Ürün</th><th>Tip</th><th class="text-end">Miktar</th><th class="text-end">Birim Fiyat</th><th>Açıklama</th><th>Fatura</th></tr></thead>
+      <tbody>
+        {% for h in hareketler %}
+        <tr>
+          <td>{{ h.tarih | format_tarih }}</td>
+          <td><a href="{{ url_for('stok.detail', id=h.stok.id) }}" class="text-decoration-none">{{ h.stok.ad }}</a></td>
+          <td>
+            {% if h.hareket_tipi in ('giris', 'iade_giris') %}
+              <span class="badge bg-success">{{ h.hareket_tipi }}</span>
+            {% else %}
+              <span class="badge bg-danger">{{ h.hareket_tipi }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">{{ h.miktar | format_miktar }} {{ h.stok.birim }}</td>
+          <td class="text-end">{{ h.birim_fiyat | format_para }}</td>
+          <td class="text-muted">{{ h.aciklama or '—' }}</td>
+          <td>
+            {% if h.fatura_id %}
+            <a href="{{ url_for('fatura.detail', id=h.fatura_id) }}" class="text-decoration-none small">{{ h.fatura.fatura_no if h.fatura else '—' }}</a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Hareket yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

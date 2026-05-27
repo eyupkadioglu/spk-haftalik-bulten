@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ fatura.fatura_no }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body { font-size: 13px; }
+    @media print { .no-print { display: none !important; } }
+    .header-band { background: #1e2a3a; color: white; padding: 16px 24px; border-radius: 6px 6px 0 0; }
+  </style>
+</head>
+<body class="p-4">
+
+<div class="no-print mb-3">
+  <button onclick="window.print()" class="btn btn-primary btn-sm">
+    <i class="bi bi-printer me-1"></i>Yazdır
+  </button>
+  <a href="{{ url_for('fatura.detail', id=fatura.id) }}" class="btn btn-outline-secondary btn-sm ms-2">Geri</a>
+</div>
+
+<div class="card border">
+  <div class="header-band d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      {% if firma_ayar and firma_ayar.logo %}
+      <img src="{{ request.host_url }}static/{{ firma_ayar.logo }}"
+           alt="Logo" style="height:48px;max-width:160px;object-fit:contain;background:white;border-radius:4px;padding:4px;">
+      {% else %}
+      <i class="bi bi-shop-window fs-3 opacity-75"></i>
+      {% endif %}
+      <div>
+        <div class="fw-bold fs-6">{{ firma_ayar.firma_adi if firma_ayar and firma_ayar.firma_adi else 'Ticaret ERP' }}</div>
+        {% if firma_ayar %}
+        {% if firma_ayar.telefon %}<div class="opacity-75 small"><i class="bi bi-telephone me-1"></i>{{ firma_ayar.telefon }}</div>{% endif %}
+        {% if firma_ayar.email %}<div class="opacity-75 small"><i class="bi bi-envelope me-1"></i>{{ firma_ayar.email }}</div>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="text-end">
+      <div class="fs-5 fw-bold">{% if fatura.fatura_tipi == 'satis' %}SATIŞ FATURASI{% else %}ALIŞ FATURASI{% endif %}</div>
+      <div class="opacity-75">{{ fatura.fatura_no }}</div>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="row mb-4">
+      <div class="col-6">
+        <div class="text-muted small fw-semibold mb-1">{{ 'MÜŞTERİ' if fatura.fatura_tipi == 'satis' else 'TEDARİKÇİ' }}</div>
+        <div class="fw-semibold">{{ fatura.cari.unvan }}</div>
+        {% if fatura.cari.vergi_no %}<div class="small text-muted">VKN: {{ fatura.cari.vergi_no }}</div>{% endif %}
+        {% if fatura.cari.vergi_dairesi %}<div class="small text-muted">{{ fatura.cari.vergi_dairesi }} V.D.</div>{% endif %}
+        {% if fatura.cari.telefon %}<div class="small">{{ fatura.cari.telefon }}</div>{% endif %}
+        {% if fatura.cari.adres %}<div class="small text-muted">{{ fatura.cari.adres }}</div>{% endif %}
+      </div>
+      <div class="col-6">
+        <div class="text-muted small fw-semibold mb-1">FATURA BİLGİLERİ</div>
+        <table class="small w-100">
+          <tr><td class="text-muted pe-3">Fatura No</td><td class="fw-semibold">{{ fatura.fatura_no }}</td></tr>
+          <tr><td class="text-muted pe-3">Tarih</td><td>{{ fatura.fatura_tarihi.strftime('%d.%m.%Y') }}</td></tr>
+          {% if fatura.vade_tarihi %}
+          <tr><td class="text-muted pe-3">Vade</td><td>{{ fatura.vade_tarihi.strftime('%d.%m.%Y') }}</td></tr>
+          {% endif %}
+          <tr><td class="text-muted pe-3">Ödeme</td><td>{{ fatura.odeme_sekli or '—' }}</td></tr>
+          {% if firma_ayar and firma_ayar.vergi_no %}
+          <tr><td class="text-muted pe-3">Firma VKN</td><td>{{ firma_ayar.vergi_no }}</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <table class="table table-sm table-bordered small">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th><th>Ürün / Açıklama</th><th>Birim</th>
+          <th class="text-end">Miktar</th><th class="text-end">Birim Fiyat</th>
+          <th class="text-end">İsk%</th><th class="text-end">KDV%</th>
+          <th class="text-end">Toplam</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k in fatura.kalemler %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ k.aciklama }}</td>
+          <td>{{ k.birim }}</td>
+          <td class="text-end">{{ k.miktar | format_miktar }}</td>
+          <td class="text-end">{{ k.birim_fiyat|format_para }}</td>
+          <td class="text-end">%{{ k.iskonto_orani }}</td>
+          <td class="text-end">%{{ k.kdv_orani }}</td>
+          <td class="text-end fw-semibold">{{ k.toplam_tutar|format_para }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="6"></td><td class="text-end text-muted">Ara Toplam</td><td class="text-end">{{ fatura.ara_toplam|format_para }}</td></tr>
+        <tr><td colspan="6"></td><td class="text-end text-muted">KDV</td><td class="text-end">{{ fatura.kdv_toplam|format_para }}</td></tr>
+        <tr><td colspan="6"></td><td class="text-end fw-bold">Genel Toplam</td><td class="text-end fw-bold fs-6 text-primary">{{ fatura.genel_toplam|format_para }}</td></tr>
+      </tfoot>
+    </table>
+
+    {% if fatura.notlar %}
+    <p class="small text-muted"><strong>Not:</strong> {{ fatura.notlar }}</p>
+    {% endif %}
+    {% if firma_ayar and firma_ayar.fatura_notu %}
+    <div class="border-top pt-2 mt-3 small text-muted">{{ firma_ayar.fatura_notu }}</div>
+    {% endif %}
+
+    {% if firma_ayar and (firma_ayar.adres or firma_ayar.website) %}
+    <div class="border-top pt-2 mt-3 text-muted small text-center">
+      {% if firma_ayar.firma_adi %}<strong>{{ firma_ayar.firma_adi }}</strong>{% endif %}
+      {% if firma_ayar.adres %} &bull; {{ firma_ayar.adres }}{% endif %}
+      {% if firma_ayar.website %} &bull; {{ firma_ayar.website }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+</html>

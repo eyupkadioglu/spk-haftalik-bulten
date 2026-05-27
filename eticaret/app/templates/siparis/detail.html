@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ siparis.siparis_no }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('siparis.index', tip=siparis.siparis_tipi) }}">Siparişler</a></li>
+<li class="breadcrumb-item active">{{ siparis.siparis_no }}</li>
+{% endblock %}
+
+{% block content %}
+{% set lbl = DURUM_LABELS.get(siparis.durum, (siparis.durum, 'secondary')) %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-check me-2 text-primary"></i>{{ siparis.siparis_no }}</h4>
+    <span class="badge bg-{{ lbl[1] }} mt-1">{{ lbl[0] }}</span>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if siparis.durum not in ('iptal','tamamlandi') %}
+      {% if siparis.durum == 'acik' %}
+      <form method="POST" action="{{ url_for('siparis.onayla', id=siparis.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1"></i>Onayla</button>
+      </form>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('siparis.faturalandir', id=siparis.id) }}"
+            onsubmit="return confirm('Siparişten fatura oluşturulsun mu?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary btn-sm">
+          <i class="bi bi-receipt me-1"></i>Faturalandır
+        </button>
+      </form>
+
+      <form method="POST" action="{{ url_for('siparis.iptal', id=siparis.id) }}"
+            onsubmit="return confirm('İptal etmek istediğinizden emin misiniz?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-danger btn-sm">İptal</button>
+      </form>
+    {% endif %}
+
+    {% if siparis.durum == 'tamamlandi' %}
+      {% set f = siparis.faturalar.filter_by() | list %}
+      {% if f %}
+      <a href="{{ url_for('fatura.detail', id=f[0].id) }}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-receipt me-1"></i>Faturaya Git: {{ f[0].fatura_no }}
+      </a>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3">
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Cari</dt><dd class="col-7"><a href="{{ url_for('cari.detail', id=siparis.cari.id) }}">{{ siparis.cari.unvan }}</a></dd>
+        <dt class="col-5 text-muted">Tip</dt><dd class="col-7">{% if siparis.siparis_tipi == 'satis' %}Satış{% else %}Alış{% endif %}</dd>
+        <dt class="col-5 text-muted">Tarih</dt><dd class="col-7">{{ siparis.siparis_tarihi | format_tarih }}</dd>
+        <dt class="col-5 text-muted">Teslim</dt><dd class="col-7">{{ siparis.teslim_tarihi | format_tarih if siparis.teslim_tarihi else '—' }}</dd>
+        <dt class="col-5 text-muted">Toplam</dt><dd class="col-7 fw-bold">{{ siparis.genel_toplam | format_para }}</dd>
+        {% if siparis.teklif %}
+        <dt class="col-5 text-muted">Kaynak Teklif</dt>
+        <dd class="col-7">
+          <a href="{{ url_for('teklif.detail', id=siparis.teklif.id) }}" class="badge bg-light text-primary border text-decoration-none">
+            <i class="bi bi-file-earmark-text me-1"></i>{{ siparis.teklif.teklif_no }}
+          </a>
+        </dd>
+        {% endif %}
+      </dl>
+      {% if siparis.notlar %}<p class="text-muted small mt-2 mb-0">{{ siparis.notlar }}</p>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0 fw-semibold">Sipariş Kalemleri</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>#</th><th>Ürün / Açıklama</th><th>Birim</th><th class="text-end">Miktar</th><th class="text-end">Birim Fiyat</th><th class="text-end">KDV%</th><th class="text-end">Toplam</th></tr></thead>
+      <tbody>
+        {% for k in siparis.kalemler %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ k.aciklama }}</td>
+          <td>{{ k.birim }}</td>
+          <td class="text-end">{{ k.miktar | format_miktar }}</td>
+          <td class="text-end">{{ k.birim_fiyat | format_para }}</td>
+          <td class="text-end">%{{ k.kdv_orani }}</td>
+          <td class="text-end fw-semibold">{{ k.toplam_tutar | format_para }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr><td colspan="6" class="text-end fw-bold">Genel Toplam:</td><td class="text-end fw-bold fs-6">{{ siparis.genel_toplam | format_para }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

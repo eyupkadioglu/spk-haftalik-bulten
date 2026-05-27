@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{% if cari %}Cari Düzenle{% else %}Yeni Cari{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('cari.index') }}">Cari</a></li>
+<li class="breadcrumb-item active">{% if cari %}Düzenle{% else %}Yeni{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold">
+    <i class="bi bi-person-plus me-2 text-primary"></i>
+    {% if cari %}{{ cari.unvan }} — Düzenle{% else %}Yeni Cari{% endif %}
+  </h4>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Ünvan *</label>
+          <input type="text" name="unvan" class="form-control" value="{{ cari.unvan if cari else '' }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cari Tipi *</label>
+          <select name="cari_tipi" class="form-select" required>
+            <option value="musteri" {{ 'selected' if cari and cari.cari_tipi == 'musteri' }}>Müşteri</option>
+            <option value="tedarikci" {{ 'selected' if cari and cari.cari_tipi == 'tedarikci' }}>Tedarikçi</option>
+            <option value="her_ikisi" {{ 'selected' if cari and cari.cari_tipi == 'her_ikisi' }}>Her İkisi</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Ödeme Vadesi (gün)</label>
+          <input type="number" name="odeme_vadesi" class="form-control" value="{{ cari.odeme_vadesi if cari else 30 }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Vergi No</label>
+          <input type="text" name="vergi_no" class="form-control" value="{{ cari.vergi_no if cari else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">TC Kimlik No</label>
+          <input type="text" name="tckn" class="form-control" maxlength="11" value="{{ cari.tckn if cari else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Vergi Dairesi</label>
+          <input type="text" name="vergi_dairesi" class="form-control" value="{{ cari.vergi_dairesi if cari else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Telefon</label>
+          <input type="text" name="telefon" class="form-control" value="{{ cari.telefon if cari else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">E-posta</label>
+          <input type="email" name="email" class="form-control" value="{{ cari.email if cari else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Şehir</label>
+          <input type="text" name="sehir" class="form-control" value="{{ cari.sehir if cari else '' }}">
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">Adres</label>
+          <textarea name="adres" class="form-control" rows="2">{{ cari.adres if cari else '' }}</textarea>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Ülke</label>
+          <input type="text" name="ulke" class="form-control" value="{{ cari.ulke if cari else 'Türkiye' }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Notlar</label>
+          <textarea name="notlar" class="form-control" rows="2">{{ cari.notlar if cari else '' }}</textarea>
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+        <a href="{{ url_for('cari.index') }}" class="btn btn-outline-secondary">İptal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

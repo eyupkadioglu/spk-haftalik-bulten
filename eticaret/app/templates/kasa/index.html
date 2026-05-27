@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Kasa Hesapları{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+<li class="breadcrumb-item active">Kasa / Banka</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-2 text-primary"></i>Kasa / Banka Hesapları</h4>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('kasa.virman') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left-right me-1"></i>Virman
+    </a>
+    <a href="{{ url_for('kasa.yeni_hesap') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Yeni Hesap
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for k in kasalar %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3">
+      <div class="d-flex align-items-center mb-2">
+        <div class="kpi-icon {% if k.hesap_tipi == 'banka' %}bg-info{% else %}bg-success{% endif %} bg-opacity-10 {% if k.hesap_tipi == 'banka' %}text-info{% else %}text-success{% endif %} me-3">
+          <i class="bi {% if k.hesap_tipi == 'banka' %}bi-bank{% else %}bi-cash{% endif %}"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ k.ad }}</div>
+          <div class="text-muted small">{{ k.hesap_tipi|title }} {% if k.banka_adi %}— {{ k.banka_adi }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="text-center py-2">
+        <div class="text-muted small">Bakiye</div>
+        <div class="fw-bold fs-5 {% if k.bakiye >= 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ k.bakiye | format_para }}
+        </div>
+        <div class="text-muted small">{{ k.para_birimi }}</div>
+      </div>
+      <div class="d-flex gap-1 mt-2">
+        <a href="{{ url_for('kasa.detail', id=k.id) }}" class="btn btn-sm btn-outline-secondary flex-grow-1">Detay</a>
+        <a href="{{ url_for('kasa.tahsilat', id=k.id) }}" class="btn btn-sm btn-success flex-grow-1">Tahsilat</a>
+        <a href="{{ url_for('kasa.odeme', id=k.id) }}" class="btn btn-sm btn-outline-danger flex-grow-1">Ödeme</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm p-4 text-center text-muted">
+      <i class="bi bi-cash-coin fs-1 mb-2"></i>
+      <p>Henüz kasa hesabı yok.</p>
+      <a href="{{ url_for('kasa.yeni_hesap') }}" class="btn btn-primary btn-sm">Hesap Oluştur</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

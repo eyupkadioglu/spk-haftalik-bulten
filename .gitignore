@@ -1,0 +1,30 @@
+# Claude Code memory
+.claude/
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# PyInstaller build artifacts
+6183_prog/build/
+6183_prog/dist/
+*.spec
+
+# Embedded git repos (EBYS has its own repo)
+EBYS/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# OS
+Thumbs.db
+desktop.ini
