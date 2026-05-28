@@ -49,7 +49,8 @@ def _run(environ):
         'server': (environ.get('SERVER_NAME','localhost'), int(environ.get('SERVER_PORT',80))),
         'headers': headers,
     }
-    body = environ['wsgi.input'].read() if environ.get('wsgi.input') else b''
+    content_length = int(environ.get('CONTENT_LENGTH') or 0)
+    body = environ['wsgi.input'].read(content_length) if content_length > 0 else b''
 
     resp = {'status': None, 'headers': [], 'body': []}
 
@@ -88,6 +89,8 @@ def application(environ, start_response):
         start_response(r['status'], r['headers'])
         return [b''.join(r['body'])]
     except Exception:
-        import traceback
-        start_response('200 OK', [('Content-Type', 'text/plain')])
-        return [traceback.format_exc().encode()]
+        import traceback, json
+        err = traceback.format_exc()
+        body = json.dumps({'error': err}).encode()
+        start_response('200 OK', [('Content-Type', 'application/json')])
+        return [body]
