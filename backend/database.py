@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _url = os.getenv("DATABASE_URL", "")
+if _url.startswith("mysql://"):
+    _url = _url.replace("mysql://", "mysql+pymysql://", 1)
 if not _url:
     raise RuntimeError("DATABASE_URL environment variable is not set")
 
