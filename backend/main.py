@@ -8,7 +8,11 @@ from routers import auth, organizations, bulletins, sections, entries, logs, arc
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✓ Veritabanı tabloları hazır")
+    except Exception as e:
+        print(f"⚠ Veritabanına bağlanılamadı: {e}")
     yield
 
 
